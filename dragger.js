@@ -32,21 +32,35 @@
   font-weight: 700; white-space: nowrap; }
 .dragger-toast button:hover { background: rgba(255,255,255,.3); }
 .dragger-toast .dragger-close { background: transparent; padding: 2px 6px; opacity: .8; }
-.amg-image-gallery button.thumbnail-item > .dragger-x { position: absolute; top: 3px; right: 3px; z-index: 6; width: 18px; height: 18px;
-  border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(15, 15, 20, .72); color: #fff;
-  border: 1px solid rgba(255,255,255,.55); box-sizing: border-box; cursor: pointer; opacity: 0; transform: scale(.85);
-  transition: opacity .12s, transform .12s, background .12s; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
-.amg-image-gallery button.thumbnail-small > .dragger-x { width: 14px; height: 14px; top: 1px; right: 1px; border-width: 1px; }
-.amg-image-gallery button.thumbnail-lg > .dragger-x { width: 22px; height: 22px; top: 5px; right: 5px; }
-.amg-image-gallery button.thumbnail-item > .dragger-x svg { position: static; transform: none; width: 55%; height: 55%; }
-.amg-image-gallery button.thumbnail-item:hover > .dragger-x, .amg-image-gallery button.thumbnail-item:focus-visible > .dragger-x,
-.dragger-x-always button.thumbnail-item > .dragger-x { opacity: 1; transform: none; }
-.amg-image-gallery button.thumbnail-item > .dragger-x:hover { background: #dc2626; border-color: #fff; transform: scale(1.1); }
-.amg-image-gallery button.thumbnail-item > .dragger-x.busy { opacity: .4 !important; pointer-events: none; }
-@media (hover: none) { .amg-image-gallery button.thumbnail-item > .dragger-x { opacity: 1; transform: none; } }
+/* Remove X: a round button straddling the thumbnail's top-right corner, mostly outside the picture.
+   Only galleries enhanced by Dragger (.amg-image-gallery.dragger-enh) get the few layout tweaks that keep it unclipped. */
+.amg-image-gallery.dragger-enh { --dragger-x: 18px; --dragger-x-lg: 24px; }
+.amg-image-gallery.dragger-enh.dragger-x-small { --dragger-x: 15px; --dragger-x-lg: 20px; }
+.amg-image-gallery.dragger-enh.dragger-x-large { --dragger-x: 22px; --dragger-x-lg: 28px; }
+.amg-image-gallery.dragger-enh button.thumbnail-item { overflow: visible; }
+.amg-image-gallery.dragger-enh button.thumbnail-item > img, .amg-image-gallery.dragger-enh button.thumbnail-item > video { border-radius: calc(var(--button-small-radius) - 1px); }
+.amg-image-gallery.dragger-enh .thumbnails { align-items: flex-end; justify-content: safe center; gap: max(var(--spacing-lg), calc(var(--dragger-x) * 0.6 + 2px));
+  padding: 0 calc(var(--dragger-x) * 0.6 + 2px) 4px 4px; box-sizing: border-box; }
+.amg-image-gallery.dragger-enh .grid-container { gap: max(var(--spacing-lg), calc(var(--dragger-x-lg) * 0.6 + 2px)); padding-right: calc(var(--dragger-x-lg) * 0.6 + 2px); }
+.amg-image-gallery.dragger-enh .grid-container { padding-top: calc(var(--dragger-x-lg) * 0.6 + 2px); }
+.amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x { position: absolute; z-index: 7; box-sizing: border-box; display: flex; align-items: center;
+  justify-content: center; width: var(--dragger-x); height: var(--dragger-x); top: calc(var(--dragger-x) * -0.55); right: calc(var(--dragger-x) * -0.55);
+  border-radius: 50%; background: rgba(17, 17, 22, .82); color: #fff; border: 1.5px solid rgba(255, 255, 255, .9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .55), 0 0 0 1px rgba(0, 0, 0, .25); cursor: pointer; opacity: 0; transform: scale(.8);
+  transition: opacity .12s, transform .12s, background .12s; }
+.amg-image-gallery.dragger-enh button.thumbnail-lg > .dragger-x { width: var(--dragger-x-lg); height: var(--dragger-x-lg);
+  top: calc(var(--dragger-x-lg) * -0.55); right: calc(var(--dragger-x-lg) * -0.55); }
+/* larger hit area, extended outwards (top / right) much more than towards the picture */
+.amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x::before { content: ""; position: absolute; top: -5px; right: -5px; bottom: -2px; left: -2px; border-radius: 50%; }
+.amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x svg { position: static; transform: none; width: 52%; height: 52%; opacity: 1; display: block; }
+.amg-image-gallery.dragger-enh button.thumbnail-item:hover > .dragger-x, .amg-image-gallery.dragger-enh button.thumbnail-item:focus-visible > .dragger-x,
+.amg-image-gallery.dragger-enh.dragger-x-always button.thumbnail-item > .dragger-x { opacity: 1; transform: none; }
+.amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x:hover { background: #e11d48; border-color: #fff; transform: scale(1.12); }
+.amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x.busy { opacity: .4 !important; pointer-events: none; }
+@media (hover: none) { .amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x { opacity: 1; transform: none; } }
 `;
     document.head.appendChild(style);
-    const X_SVG = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>';
+    const X_SVG = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/></svg>';
 
     // ------------------------------------------------------------------ targets
     let targets = [];
@@ -408,7 +422,11 @@
             const el = block(t);
             if (!el) continue;
             const on = cfg.remove_x && enabled(t);
+            const size = ["small", "large"].includes(cfg.x_size) ? cfg.x_size : "medium";
+            el.classList.toggle("dragger-enh", !!on);
             el.classList.toggle("dragger-x-always", on && cfg.remove_x_mode === "always");
+            el.classList.toggle("dragger-x-small", on && size === "small");
+            el.classList.toggle("dragger-x-large", on && size === "large");
             for (const btn of el.querySelectorAll("button.thumbnail-item")) {
                 const x = btn.querySelector(":scope > .dragger-x");
                 if (!on) { if (x) x.remove(); continue; }
@@ -427,16 +445,32 @@
         const list = [...btn.parentElement.querySelectorAll(":scope > button.thumbnail-item")];
         return list.indexOf(btn);
     }
+    // Gradio's Gallery opens the preview on the first value change after it is (re)mounted, whatever the server
+    // asks for. When the X was used in the grid view, go back to the grid through the gallery's own Escape key
+    // handler (not its Close button: WanGP turns that one into "Remove selected").
+    function keepGrid(block) {
+        const t0 = Date.now();
+        const tick = () => {
+            const preview = block.querySelector(".gallery-container > .preview");
+            if (preview) { preview.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true, cancelable: true })); return; }
+            if (Date.now() - t0 < 600) setTimeout(tick, 50);
+        };
+        tick();
+    }
+
     async function removeThumb(x) {
         const btn = x.closest("button.thumbnail-item");
         const t = zoneOf(btn);
         if (!btn || !t) return;
         const img = btn.querySelector("img");
         const index = thumbIndex(btn);
+        const grid = btn.classList.contains("thumbnail-lg");
+        const block = btn.closest(".amg-image-gallery");
         x.classList.add("busy");
-        const r = await bridge(t, { action: "remove", index, src: img ? img.getAttribute("src") || img.src : "", grid: btn.classList.contains("thumbnail-lg") });
+        const r = await bridge(t, { action: "remove", index, src: img ? img.getAttribute("src") || img.src : "", grid });
         x.classList.remove("busy");
         if (!r.ok) { toast(`No se ha podido quitar la imagen: ${r.error}`, "error"); return r; }
+        if (grid && block && r.total > 0) keepGrid(block);
         if (cfg.undo) {
             toast(`Imagen quitada de ${t.label}`, "ok", { force: true, ms: 5000, actions: [{ label: "Deshacer", fn: async () => {
                 const u = await bridge(t, { action: "undo", token: r.token });

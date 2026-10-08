@@ -36,7 +36,7 @@ import gradio as gr
 
 from shared.utils.plugins import WAN2GPPlugin
 
-PLUGIN_VERSION = "1.0.0"
+PLUGIN_VERSION = "1.0.1"
 _PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_PATH = os.path.join(_PLUGIN_DIR, "settings.json")
 
@@ -44,6 +44,7 @@ TARGETS = (("image_start", "Imagen de inicio"), ("image_end", "Imagen final"), (
 TAB_IDS = ("generate", "edit")
 POSITION_CHOICES = [("Al final", "end"), ("Al principio", "start"), ("Después de la seleccionada (como «Add»)", "after_selected")]
 X_MODE_CHOICES = [("Al pasar el ratón", "hover"), ("Siempre visible", "always")]
+X_SIZE_CHOICES = [("Pequeña", "small"), ("Mediana", "medium"), ("Grande", "large")]
 
 DEFAULT_SETTINGS = {
     "drag_enabled": True,        # drop images (files, browser images, URLs) on the galleries
@@ -57,9 +58,10 @@ DEFAULT_SETTINGS = {
     "remote_download": True,     # download images from web URLs on the server when the browser can't (CORS)
     "remove_x": True,            # small round X on every thumbnail to remove only that image
     "remove_x_mode": "hover",    # "hover" | "always"
+    "x_size": "medium",          # "small" | "medium" | "large" (round X straddling the thumbnail's top-right corner)
     "undo": True,                # "Imagen quitada · Deshacer" for 5 s after an X removal
 }
-_CHOICES = {"position": ("end", "start", "after_selected"), "remove_x_mode": ("hover", "always")}
+_CHOICES = {"position": ("end", "start", "after_selected"), "remove_x_mode": ("hover", "always"), "x_size": ("small", "medium", "large")}
 _RANGES = {"max_side": (64, 16384), "toast_ms": (1000, 30000)}
 
 # Formats that WanGP's image galleries and generators read as they are.
@@ -253,6 +255,8 @@ class DraggerPlugin(WAN2GPPlugin):
             with gr.Row():
                 remove_x = gr.Checkbox(label="X para quitar cada imagen", value=current("remove_x"), elem_id="dragger_remove_x")
                 remove_x_mode = gr.Dropdown(label="Mostrar la X", choices=X_MODE_CHOICES, value=current("remove_x_mode"), elem_id="dragger_remove_x_mode")
+                x_size = gr.Dropdown(label="Tamaño de la X", choices=X_SIZE_CHOICES, value=current("x_size"), elem_id="dragger_x_size",
+                                     info="Va en la esquina superior derecha, casi toda por fuera de la miniatura.")
                 undo = gr.Checkbox(label="Ofrecer «Deshacer» durante 5 s", value=current("undo"), elem_id="dragger_undo")
         with gr.Group():
             gr.Markdown("### Avisos")
@@ -273,10 +277,11 @@ class DraggerPlugin(WAN2GPPlugin):
                 btn = gr.Button("bridge", elem_id=self.bridge_elem_id(key))
                 btn.click(fn=self._bridge_fn(key), inputs=[bridge_req, target["gallery"], target["state"]],
                           outputs=[bridge_resp, target["gallery"], target["state"]], show_progress="hidden", trigger_mode="multiple",
-                          queue=True).then(fn=None, inputs=[bridge_resp], outputs=None, show_progress="hidden",
+                          queue=True).then(fn=self._resync_selection, inputs=[bridge_resp, target["state"]], outputs=[target["gallery"], target["state"]],
+                                           show_progress="hidden", queue=True).then(fn=None, inputs=[bridge_resp], outputs=None, show_progress="hidden",
                                            js="(r) => { if (window.dragger) window.dragger.bridgeResponse(r); }")
 
-        inputs = [drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side, remove_x, remove_x_mode, undo, toasts, toast_s]
+        inputs = [drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side, remove_x, remove_x_mode, undo, toasts, toast_s, x_size]
         save_btn.click(fn=self._save_from_ui, inputs=inputs, outputs=[status, settings_json], show_progress="hidden").then(
             fn=None, inputs=[settings_json], outputs=None, js="(s) => { if (window.dragger) window.dragger.applySettings(s); }")
 
@@ -289,9 +294,9 @@ class DraggerPlugin(WAN2GPPlugin):
                  "button": self.bridge_elem_id(key)} for key, t in self.targets.items()]
 
     def _save_from_ui(self, drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side,
-                      remove_x, remove_x_mode, undo, toasts, toast_s):
+                      remove_x, remove_x_mode, undo, toasts, toast_s, x_size="medium"):
         settings = self.apply_ui_values(drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side,
-                                        remove_x, remove_x_mode, undo, toasts, toast_s)
+                                        remove_x, remove_x_mode, undo, toasts, toast_s, x_size)
         try:
             save_settings(settings)
         except Exception as e:
@@ -300,13 +305,14 @@ class DraggerPlugin(WAN2GPPlugin):
 
     @staticmethod
     def apply_ui_values(drag_enabled=True, paste_enabled=True, remote=True, t_start=True, t_end=True, t_refs=True, position="end",
-                        downscale=False, max_side=2048, remove_x=True, remove_x_mode="hover", undo=True, toasts=True, toast_s=3.5):
+                        downscale=False, max_side=2048, remove_x=True, remove_x_mode="hover", undo=True, toasts=True, toast_s=3.5,
+                        x_size="medium"):
         settings = copy.deepcopy(DEFAULT_SETTINGS)
         settings.update({"drag_enabled": bool(drag_enabled), "paste_enabled": bool(paste_enabled), "remote_download": bool(remote),
                          "targets": {"image_start": bool(t_start), "image_end": bool(t_end), "image_refs": bool(t_refs)},
                          "position": _coerce("position", "end", position), "downscale": bool(downscale),
                          "max_side": _coerce("max_side", 2048, max_side), "remove_x": bool(remove_x),
-                         "remove_x_mode": _coerce("remove_x_mode", "hover", remove_x_mode), "undo": bool(undo), "toasts": bool(toasts),
+                         "remove_x_mode": _coerce("remove_x_mode", "hover", remove_x_mode), "x_size": _coerce("x_size", "medium", x_size), "undo": bool(undo), "toasts": bool(toasts),
                          "toast_ms": _coerce("toast_ms", 3500, (toast_s or 0) * 1000 if isinstance(toast_s, (int, float)) else None)})
         return settings
 
@@ -345,7 +351,28 @@ class DraggerPlugin(WAN2GPPlugin):
             out = {"ok": False, "error": str(e) or e.__class__.__name__}
         out["id"] = req.get("id")
         out["target"] = key
+        if out.get("ok") and isinstance(out_state, dict) and "items" in out_state:
+            out["resync"] = {"selected": out_state.get("selected"), "count": len(out_state.get("items") or [])}
         return json.dumps(out), out_gallery, out_state
+
+    @staticmethod
+    def _resync_selection(raw, state):
+        """Second step after a change: re-send the selection on its own.
+        Gradio's Gallery resets its selection to 0 (and opens the preview) on the first value change after it is
+        (re)mounted, and the gallery's own metadata sync may then copy that 0 into the state. Re-sending the selection
+        the action decided (from the response, not from the possibly re-synced state) fixes both; it is a no-op when
+        the browser already shows it."""
+        from shared.gradio.gallery import get_list, get_state
+        try:
+            want = json.loads(raw or "{}").get("resync")
+        except Exception:
+            want = None
+        st = get_state(state)
+        if not isinstance(want, dict) or len(get_list(st.get("items"))) != want.get("count"):
+            return gr.skip(), gr.skip()      # nothing to do, or the gallery changed in between: leave it alone
+        sel = want.get("selected")
+        st["selected"] = sel
+        return gr.update(selected_index=sel), st
 
     @staticmethod
     def inspect(gallery, state):

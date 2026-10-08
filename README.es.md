@@ -1,6 +1,6 @@
 # Dragger: arrastra y pega imágenes en Wan2GP
 
-*[English](README.md)* · Licencia MIT · v1.0.0
+*[English](README.md)* · Licencia MIT · v1.0.1
 
 **Dragger** es un plugin para [Wan2GP / WanGP](https://github.com/deepbeepmeep/Wan2GP) que facilita meter imágenes en las galerías de imagen del generador:
 
@@ -8,7 +8,7 @@
 - **End Image(s)** (imagen final)
 - **Reference Images** (referencias)
 
-De serie, estas galerías solo aceptan que sueltes algo cuando están vacías, y pegar desde el portapapeles es complicado. En cuanto tienen imágenes ya no deja soltar ni pegar nuevas. Con Dragger puedes **soltar o pegar (Ctrl+V) imágenes siempre, y se añaden a las que ya hay**. Una pequeña **X** en cada miniatura quita solo esa imagen.
+De serie, estas galerías solo aceptan que sueltes algo cuando están vacías, y pegar desde el portapapeles es complicado. En cuanto tienen imágenes ya no deja soltar ni pegar nuevas. Con Dragger puedes **soltar o pegar (Ctrl+V) imágenes siempre, y se añaden a las que ya hay**. Una **X** redonda en la esquina de cada miniatura quita solo esa imagen.
 
 Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobrevive a las actualizaciones de WanGP.
 
@@ -31,7 +31,8 @@ Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobreviv
 - Mensajes rojos de error: formato no compatible, archivo que no es una imagen, descarga fallida (con el código HTTP), enlace a una página en vez de a una imagen… Si en un lote fallan algunas, las válidas se añaden igualmente y se listan las que fallaron.
 
 **Quitar una imagen (X)**
-- Una **X** redonda pequeña en la esquina superior derecha de cada miniatura, tanto en la tira de miniaturas bajo la vista previa como en la vista de cuadrícula. Por defecto aparece al pasar el ratón; también puede estar siempre visible.
+- Una **X** redonda montada sobre la esquina superior derecha de cada miniatura, casi toda por fuera para no tapar la imagen, tanto en la tira de miniaturas bajo la vista previa como en la vista de cuadrícula. Fondo oscuro, aspa blanca y rojo al pasar el ratón. Por defecto aparece al pasar el ratón; también puede estar siempre visible, y hay tres tamaños.
+- Al pulsar la imagen en sí (en cualquier punto fuera de la X) la miniatura se selecciona como siempre.
 - Al pulsarla se quita **solo esa imagen**. Las demás mantienen su orden, y el clic en la X no selecciona la miniatura ni abre la vista previa. La imagen que estaba seleccionada sigue seleccionada; si quitas la seleccionada, la selección se mueve igual que con el botón **Remove** de WanGP.
 - ***Imagen quitada · Deshacer***: durante 5 s, **Deshacer** la vuelve a poner en la misma posición.
 
@@ -63,6 +64,7 @@ Encuentra los componentes con la API de plugins (`request_component`) y funciona
 | Reducir las imágenes grandes + Lado mayor máximo (px) | desactivado, 2048 |
 | X para quitar cada imagen | activado |
 | Mostrar la X: *Al pasar el ratón* / *Siempre visible* | al pasar el ratón |
+| Tamaño de la X: *Pequeña* / *Mediana* / *Grande* (tira 15 / 18 / 22 px, cuadrícula 20 / 24 / 28 px) | mediana |
 | Ofrecer «Deshacer» durante 5 s | activado |
 | Mensajes de confirmación + Duración (los errores se muestran siempre) | activado, 3,5 s |
 
@@ -109,7 +111,7 @@ Probado con Wan2GP v17.17 (Gradio 5.29) en Chrome, contra la interfaz real de Wa
 
 ## Problemas
 
-- **No pasa nada al soltar o pegar:** activa el plugin en la pestaña Plugins, reinicia WanGP y recarga la página. La consola del navegador (F12) debe mostrar `[Dragger] v1.0.0: 6 galleries …`.
+- **No pasa nada al soltar o pegar:** activa el plugin en la pestaña Plugins, reinicia WanGP y recarga la página. La consola del navegador (F12) debe mostrar `[Dragger] v1.0.1: 6 galleries …`.
 - **Pega en la galería equivocada:** pon el ratón encima de la galería que quieres (o haz clic en ella) antes de pulsar Ctrl+V.
 - **Ctrl+V en un cuadro de texto pega texto:** es lo previsto. Haz clic fuera del cuadro primero.
 

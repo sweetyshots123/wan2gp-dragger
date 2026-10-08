@@ -2,6 +2,15 @@
 
 All notable changes to Dragger. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 2026-10-08
+### Changed
+- **Bigger remove X, placed outside the thumbnail**: the X is now a round button straddling the thumbnail's top-right corner, mostly outside the picture (Magnific style), so it no longer covers the image. Dark semi-opaque background, thick white glyph, light border and shadow; turns red and grows slightly on hover. Its click area extends outwards, away from the picture, so a click on the picture still selects the thumbnail.
+- **New setting `x_size`** (*Tamaño de la X*: small / medium / large, default medium). Medium is 18 px on the thumbnail strip and 24 px in the grid view (small 15/20, large 22/28).
+- Minimal, scoped layout tweaks so the X is never clipped, only on galleries handled by Dragger: thumbnails no longer clip their overflow, the strip gets a little padding and a larger gap (so an X never overlaps the next thumbnail) and keeps scrolling horizontally, the grid gets top/right padding and a larger gap.
+
+### Fixed
+- Removing a non-selected image with the X right after the gallery was (re)filled (e.g. *Clear* and drop) could move the selection to the first image, and in the grid view open the preview. Gradio's Gallery resets its selection on the first change after it is mounted; Dragger now re-sends the intended selection in a second step and returns to the grid view when the X was used there.
+
 ## [1.0.0] - 2026-10-08
 ### Added
 - **Drag & drop** images onto WanGP's *Images as starting points* (`image_start`), *End Image(s)* (`image_end`) and *Reference Images* (`image_refs`) galleries, in the generator form and in the queue *Edit* tab, **also when they already contain images**. New images are appended (setting `position`: `end` (default), `start` or `after_selected` = what the Add button does), in drop order, multiple files at once; existing images are never replaced. Accepts files, `text/html` `<img>` sources, `text/uri-list`, image URLs in `text/plain` and `data:` / `blob:` URLs. Web images the browser can't read (CORS) are downloaded by the server (`remote_download`, http/https, 64 MB max, must decode as an image; link-local always refused, loopback only for a browser on the same machine). Dropping a thumbnail back on its own gallery is ignored.

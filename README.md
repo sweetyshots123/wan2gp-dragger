@@ -1,6 +1,6 @@
 # Dragger — drag & drop and paste images into Wan2GP
 
-*[Español](README.es.md)* · MIT License · v1.0.0
+*[Español](README.es.md)* · MIT License · v1.0.1
 
 **Dragger** is a plugin for [Wan2GP / WanGP](https://github.com/deepbeepmeep/Wan2GP) that makes it easy to put images into the generator's image galleries:
 
@@ -8,7 +8,7 @@
 - **End Image(s)**
 - **Reference Images**
 
-Out of the box, these galleries only accept a drop while they are empty, and pasting from the clipboard is awkward. Once a gallery holds images you can't drop or paste new ones at all. With Dragger you can **drop or paste (Ctrl+V) images at any time, and they are added to the images already there**. A small **X** on every thumbnail removes just that image.
+Out of the box, these galleries only accept a drop while they are empty, and pasting from the clipboard is awkward. Once a gallery holds images you can't drop or paste new ones at all. With Dragger you can **drop or paste (Ctrl+V) images at any time, and they are added to the images already there**. A round **X** on the corner of every thumbnail removes just that image.
 
 It is a regular WanGP plugin. It doesn't modify any core WanGP file, so it survives WanGP updates.
 
@@ -33,7 +33,8 @@ It is a regular WanGP plugin. It doesn't modify any core WanGP file, so it survi
 - Red error messages: unsupported format, file that isn't an image, failed download (with the HTTP code), link to a web page instead of an image, and so on. When some images of a batch fail, the valid ones are still added and the failures are listed.
 
 **Remove a single image (X)**
-- A small round **X** in the top-right corner of every thumbnail, in the thumbnail strip under the preview and in the grid view. By default it shows on hover; it can also be always visible.
+- A round **X** straddling the top-right corner of every thumbnail, mostly outside the picture so it doesn't cover it, in the thumbnail strip under the preview and in the grid view. Dark background, white glyph, red on hover. By default it shows on hover; it can also be always visible, and it comes in three sizes.
+- Clicking the picture itself (anywhere away from the X) still selects the thumbnail as usual.
 - A click on the X removes **only that image**. The rest keep their order, and the X click doesn't select the thumbnail or open the preview. The image that was selected stays selected; when you remove the selected image itself, the selection moves exactly as with WanGP's **Remove** button.
 - ***Imagen quitada · Deshacer*** (image removed · undo): for 5 s, **Deshacer** puts the image back at the same position.
 
@@ -65,6 +66,7 @@ The plugin finds the components with the plugin API (`request_component("image_s
 | Reducir las imágenes grandes + Lado mayor máximo (px) | auto-downscale and its limit | off, 2048 |
 | X para quitar cada imagen | per-thumbnail remove X | on |
 | Mostrar la X | show the X *on hover* or *always* | on hover |
+| Tamaño de la X | X size: *small* / *medium* / *large* (strip 15 / 18 / 22 px, grid 20 / 24 / 28 px) | medium |
 | Ofrecer «Deshacer» durante 5 s | undo after an X removal | on |
 | Mensajes de confirmación + Duración | confirmation messages and their duration (errors are always shown) | on, 3.5 s |
 
@@ -111,7 +113,7 @@ Tested with Wan2GP v17.17 (Gradio 5.29) in Chrome, against the real WanGP interf
 
 ## Troubleshooting
 
-- **Nothing happens on drop or paste:** enable the plugin in the Plugins tab, restart WanGP and reload the page. The browser console (F12) should show `[Dragger] v1.0.0: 6 galleries …`.
+- **Nothing happens on drop or paste:** enable the plugin in the Plugins tab, restart WanGP and reload the page. The browser console (F12) should show `[Dragger] v1.0.1: 6 galleries …`.
 - **Paste goes to the wrong gallery:** hover over the gallery you want (or click in it) before pressing Ctrl+V.
 - **Ctrl+V in a text box pastes text:** that's intended. Click outside the text box first.
 
