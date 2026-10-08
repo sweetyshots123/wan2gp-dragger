@@ -6,6 +6,63 @@
     let cfg = __DRAGGER_SETTINGS__;
     const log = (...a) => console.log("[Dragger]", ...a);
     const IMG_NAME = /\.(png|jpe?g|jfif|pjpeg|bmp|gif|webp|tiff?|avif|heic|heif|ico|apng)$/i;
+    // ------------------------------------------------------------------ i18n
+    // Every text shown in the page, in English and Spanish. Setting "language": "auto" (default) = Spanish when
+    // navigator.language starts with "es", English otherwise; "en" / "es" force it. Applied live.
+    const I18N = {
+        en: {
+            g_image_start: "Start image", g_image_end: "End image", g_image_refs: "Reference images",
+            drop_to: "Drop to add to: {g}",
+            remove_title: "Remove this image",
+            added_one: "Added 1 image to {g} (total {total})", added_many: "Added {n} images to {g} (total {total})",
+            single_set: "Image set in {g} (this gallery holds only one)",
+            not_added_one: "1 image not added:", not_added_many: "{n} images not added:",
+            add_failed: "Could not add to {g}:", add_error: "Error adding to {g}: {e}",
+            nothing_added: "Nothing added to {g}:", no_images_for: "No images to add to {g}",
+            adding_one: "Adding 1 image to {g}\u2026", adding_many: "Adding {n} images to {g}\u2026",
+            unsupported_file: "{name}: unsupported format ({type})", unknown_type: "unknown", file: "file",
+            no_image_found: "No image found for {g}",
+            paste_where_one: "Where should I paste the image?", paste_where_many: "Where should I paste the {n} images?", close: "Close",
+            removed: "Image removed from {g}", undo: "Undo", restored: "Image restored in {g} (total {total})",
+            undo_failed: "Could not undo: {e}", removed_left: "Image removed from {g} ({total} left)",
+            remove_failed: "Could not remove the image: {e}",
+            not_ready: "the plugin is not ready (reload the page)", no_response: "no response from the server",
+            upload_failed_http: "upload failed (HTTP {status})", upload_failed: "upload failed", not_image: "not an image",
+            no_images: "no images", unknown_gallery: "unknown gallery",
+            paste_prefix: "clipboard", web_image: "web-image", image: "image",
+        },
+        es: {
+            g_image_start: "Imagen de inicio", g_image_end: "Imagen final", g_image_refs: "Referencias",
+            drop_to: "Soltar para añadir a: {g}",
+            remove_title: "Quitar esta imagen",
+            added_one: "Añadida 1 imagen a {g} (total {total})", added_many: "Añadidas {n} imágenes a {g} (total {total})",
+            single_set: "Imagen puesta en {g} (esta galería solo admite una)",
+            not_added_one: "1 imagen no añadida:", not_added_many: "{n} imágenes no añadidas:",
+            add_failed: "No se ha podido añadir a {g}:", add_error: "Error al añadir a {g}: {e}",
+            nothing_added: "No se ha añadido nada a {g}:", no_images_for: "No hay imágenes que añadir a {g}",
+            adding_one: "Añadiendo 1 imagen a {g}\u2026", adding_many: "Añadiendo {n} imágenes a {g}\u2026",
+            unsupported_file: "{name}: formato no compatible ({type})", unknown_type: "desconocido", file: "archivo",
+            no_image_found: "No se ha encontrado ninguna imagen para {g}",
+            paste_where_one: "¿Dónde pego la imagen?", paste_where_many: "¿Dónde pego las {n} imágenes?", close: "Cerrar",
+            removed: "Imagen quitada de {g}", undo: "Deshacer", restored: "Imagen restaurada en {g} (total {total})",
+            undo_failed: "No se ha podido deshacer: {e}", removed_left: "Imagen quitada de {g} (quedan {total})",
+            remove_failed: "No se ha podido quitar la imagen: {e}",
+            not_ready: "el plugin no está listo (recarga la página)", no_response: "sin respuesta del servidor",
+            upload_failed_http: "subida fallida (HTTP {status})", upload_failed: "subida fallida", not_image: "no es una imagen",
+            no_images: "no hay imágenes", unknown_gallery: "galería desconocida",
+            paste_prefix: "portapapeles", web_image: "imagen-web", image: "imagen",
+        },
+    };
+    const browserLang = () => String(navigator.language || (navigator.languages && navigator.languages[0]) || "");
+    const lang = () => (cfg.language === "en" || cfg.language === "es") ? cfg.language
+        : (browserLang().toLowerCase().startsWith("es") ? "es" : "en");
+    function t(key, params = {}) {
+        const table = I18N[lang()] || I18N.en;
+        const text = key in table ? table[key] : (I18N.en[key] ?? key);
+        return text.replace(/\{(\w+)\}/g, (m, k) => (k in params ? String(params[k]) : m));
+    }
+    const gname = target => t("g_" + target.name);
+
     const MIME_EXT = { "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp", "image/gif": ".gif", "image/bmp": ".bmp",
         "image/avif": ".avif", "image/tiff": ".tif", "image/heic": ".heic", "image/heif": ".heif", "image/x-icon": ".ico", "image/vnd.microsoft.icon": ".ico" };
 
@@ -116,6 +173,7 @@
             b.type = "button";
             b.textContent = action.label;
             if (action.className) b.className = action.className;
+            if (action.title) { b.title = action.title; b.setAttribute("aria-label", action.title); }
             b.addEventListener("click", ev => { ev.preventDefault(); ev.stopPropagation(); close(); action.fn && action.fn(); });
             el.appendChild(b);
         }
@@ -126,7 +184,6 @@
         el.close = close;
         return el;
     }
-    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
     // ------------------------------------------------------------------ bridge (JS <-> Python)
     let seq = 0, chain = Promise.resolve();
@@ -143,11 +200,11 @@
         const run = () => new Promise(resolve => {
             const id = ++seq;
             const button = document.getElementById(target.button);
-            if (!button || !setBox("#dragger_bridge_req textarea, #dragger_bridge_req input", JSON.stringify({ ...payload, id, target: target.key }))) {
-                resolve({ ok: false, error: "el plugin no está listo (recarga la página)" });
+            if (!button || !setBox("#dragger_bridge_req textarea, #dragger_bridge_req input", JSON.stringify({ ...payload, id, target: target.key, lang: lang() }))) {
+                resolve({ ok: false, error: t("not_ready") });
                 return;
             }
-            const timer = setTimeout(() => { pending.delete(id); resolve({ ok: false, error: "sin respuesta del servidor" }); }, 180000);
+            const timer = setTimeout(() => { pending.delete(id); resolve({ ok: false, error: t("no_response") }); }, 180000);
             pending.set(id, { resolve, timer });
             setTimeout(() => button.click(), 30);
         });
@@ -216,7 +273,7 @@
             try { name = decodeURIComponent(new URL(url).pathname.split("/").pop() || ""); } catch (e) { name = ""; }
             if (name.includes("file=")) name = name.split(/[\\/]/).pop();
         }
-        name = name.replace(/[\\/:*?"<>|]+/g, "_").slice(-100) || "imagen-web";
+        name = name.replace(/[\\/:*?"<>|]+/g, "_").slice(-100) || t("web_image");
         const ext = MIME_EXT[(blob && blob.type) || ""];
         if (ext && !IMG_NAME.test(name)) name += ext;
         return name;
@@ -229,7 +286,7 @@
             const res = await window.fetch(url, { mode: same ? "same-origin" : "cors", credentials: same ? "same-origin" : "omit", signal: ctrl.signal });
             if (!res.ok) throw new Error("HTTP " + res.status);
             const blob = await res.blob();
-            if (blob.type && !blob.type.startsWith("image/") && blob.type !== "application/octet-stream") throw new Error("no es una imagen");
+            if (blob.type && !blob.type.startsWith("image/") && blob.type !== "application/octet-stream") throw new Error(t("not_image"));
             return blob;
         } finally { clearTimeout(timer); }
     }
@@ -243,29 +300,30 @@
         for (const e of entries) form.append("files", e.blob, e.name);
         const id = Math.random().toString(36).slice(2);
         const res = await window.fetch(`${apiBase()}/upload?upload_id=${id}`, { method: "POST", body: form, credentials: "same-origin" });
-        if (!res.ok) throw new Error(`subida fallida (HTTP ${res.status})`);
+        if (!res.ok) throw new Error(t("upload_failed_http", { status: res.status }));
         const paths = await res.json();
-        if (!Array.isArray(paths) || paths.length !== entries.length) throw new Error("subida fallida");
+        if (!Array.isArray(paths) || paths.length !== entries.length) throw new Error(t("upload_failed"));
         return paths;
     }
 
     // ------------------------------------------------------------------ adding
     async function addTo(target, x, source) {
-        const errors = x.rejected.map(f => `${f.name || "archivo"}: formato no compatible (${f.type || "desconocido"})`);
+        const g = gname(target);
+        const errors = x.rejected.map(f => t("unsupported_file", { name: f.name || t("file"), type: f.type || t("unknown_type") }));
         const entries = [];   // ordered: {blob, name} or {url}
         let n = 0;
         for (const f of x.files) {
             n++;
             let name = f.name || "";
-            if (source === "paste" && (!name || /^image\.\w+$/i.test(name))) name = `portapapeles-${stamp()}${x.files.length > 1 ? "-" + n : ""}${MIME_EXT[f.type] || ".png"}`;
-            entries.push({ blob: f, name: name || `imagen-${n}${MIME_EXT[f.type] || ""}` });
+            if (source === "paste" && (!name || /^image\.\w+$/i.test(name))) name = `${t("paste_prefix")}-${stamp()}${x.files.length > 1 ? "-" + n : ""}${MIME_EXT[f.type] || ".png"}`;
+            entries.push({ blob: f, name: name || `${t("image")}-${n}${MIME_EXT[f.type] || ""}` });
         }
         const total = x.files.length + x.urls.length;
         if (!total) {
-            toast(errors.length ? `No se ha añadido nada a ${target.label}:\n` + errors.slice(0, 3).join("\n") : `No hay imágenes que añadir a ${target.label}`, "error");
+            toast(errors.length ? t("nothing_added", { g }) + "\n" + errors.slice(0, 3).join("\n") : t("no_images_for", { g }), "error");
             return { ok: false };
         }
-        const busy = setTimeout(() => toast(`Añadiendo ${plural(total, "imagen", "imágenes")} a ${target.label}…`, "info", { ms: 2500 }), 700);
+        const busy = setTimeout(() => toast(t(total === 1 ? "adding_one" : "adding_many", { n: total, g }), "info", { ms: 2500 }), 700);
         try {
             for (const url of x.urls) {
                 try {
@@ -282,22 +340,21 @@
                 blobs.forEach((e, i) => { e.path = paths[i]; });
             }
             const items = entries.map(e => e.blob ? { kind: "path", path: e.path, name: e.name } : { kind: "url", url: e.url });
-            if (!items.length) throw new Error(errors[0] || "no hay imágenes");
+            if (!items.length) throw new Error(errors[0] || t("no_images"));
             const r = await bridge(target, { action: "add", items, position: cfg.position, downscale: cfg.downscale, max_side: cfg.max_side });
             clearTimeout(busy);
             const allErrors = errors.concat(r.errors || []);
             if (r.ok) {
-                const msg = r.single ? `Imagen puesta en ${target.label} (esta galería solo admite una)`
-                    : `${r.added === 1 ? "Añadida 1 imagen" : `Añadidas ${r.added} imágenes`} a ${target.label} (total ${r.total})`;
+                const msg = r.single ? t("single_set", { g }) : t(r.added === 1 ? "added_one" : "added_many", { n: r.added, g, total: r.total });
                 toast(msg, "ok");
-                if (allErrors.length) toast(`${plural(allErrors.length, "imagen no añadida", "imágenes no añadidas")}:\n` + allErrors.slice(0, 3).join("\n"), "error");
+                if (allErrors.length) toast(t(allErrors.length === 1 ? "not_added_one" : "not_added_many", { n: allErrors.length }) + "\n" + allErrors.slice(0, 3).join("\n"), "error");
             } else {
-                toast(`No se ha podido añadir a ${target.label}:\n` + (allErrors.length ? allErrors.slice(0, 3).join("\n") : r.error), "error");
+                toast(t("add_failed", { g }) + "\n" + (allErrors.length ? allErrors.slice(0, 3).join("\n") : r.error), "error");
             }
             return r;
         } catch (e) {
             clearTimeout(busy);
-            toast(`Error al añadir a ${target.label}: ${e.message || e}`, "error");
+            toast(t("add_error", { g, e: e.message || e }), "error");
             return { ok: false, error: String(e.message || e) };
         }
     }
@@ -308,25 +365,26 @@
     function renderOverlays(activeKey) {
         const vis = visibleTargets();
         const keep = new Set();
-        for (const t of vis) {
-            const el = block(t);
+        for (const tg of vis) {
+            const el = block(tg);
             if (!inViewport(el)) continue;
-            keep.add(t.key);
-            let ov = overlays.get(t.key);
+            keep.add(tg.key);
+            let ov = overlays.get(tg.key);
             if (!ov) {
                 ov = document.createElement("div");
                 ov.className = "dragger-zone";
-                ov.dataset.target = t.key;
+                ov.dataset.target = tg.key;
                 const label = document.createElement("div");
                 label.className = "dragger-zone-label";
-                label.textContent = `Soltar para añadir a: ${t.label}`;
                 ov.appendChild(label);
                 document.body.appendChild(ov);
-                overlays.set(t.key, ov);
+                overlays.set(tg.key, ov);
             }
+            const text = t("drop_to", { g: gname(tg) });
+            if (ov.firstChild.textContent !== text) ov.firstChild.textContent = text;
             const r = el.getBoundingClientRect();
             Object.assign(ov.style, { left: r.left - 3 + "px", top: r.top - 3 + "px", width: r.width + 6 + "px", height: r.height + 6 + "px" });
-            ov.classList.toggle("active", t.key === activeKey);
+            ov.classList.toggle("active", tg.key === activeKey);
         }
         for (const [key, ov] of overlays) if (!keep.has(key)) { ov.remove(); overlays.delete(key); }
     }
@@ -350,15 +408,15 @@
     }
     function onDrop(e) {
         if (!cfg.drag_enabled) return;
-        const t = zoneOf(e.target);
+        const tg = zoneOf(e.target);
         clearOverlays();
-        if (!t || !isFileDrag(e.dataTransfer)) return;
+        if (!tg || !isFileDrag(e.dataTransfer)) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (dragSource && dragSource.key === t.key) return;   // a thumbnail dropped back on its own gallery
+        if (dragSource && dragSource.key === tg.key) return;   // a thumbnail dropped back on its own gallery
         const x = extract(e.dataTransfer);
-        if (!hasPayload(x)) { toast(`No se ha encontrado ninguna imagen para ${t.label}`, "error"); return; }
-        addTo(t, x, "drop");
+        if (!hasPayload(x)) { toast(t("no_image_found", { g: gname(tg) }), "error"); return; }
+        addTo(tg, x, "drop");
     }
     window.addEventListener("dragstart", e => { dragSource = zoneOf(e.target); }, true);
     window.addEventListener("dragend", () => { dragSource = null; clearOverlays(); }, true);
@@ -405,10 +463,10 @@
         e.stopImmediatePropagation();
         if (where.target) { addTo(where.target, x, "paste"); return; }
         const n = x.files.length + x.urls.length;
-        toast(`¿Dónde pego ${n === 1 ? "la imagen" : `las ${n} imágenes`}?`, "info", {
+        toast(t(n === 1 ? "paste_where_one" : "paste_where_many", { n }), "info", {
             force: true, ms: 10000,
-            actions: where.choices.map(t => ({ label: t.label, fn: () => addTo(t, x, "paste") }))
-                .concat([{ label: "✕", className: "dragger-close", fn: null }]),
+            actions: where.choices.map(tg => ({ label: gname(tg), fn: () => addTo(tg, x, "paste") }))
+                .concat([{ label: "✕", title: t("close"), className: "dragger-close", fn: null }]),
         });
     }
     window.addEventListener("paste", onPaste, true);
@@ -418,10 +476,11 @@
     function scheduleDecorate() { if (!decorateFrame) decorateFrame = requestAnimationFrame(decorate); }
     function decorate() {
         decorateFrame = 0;
-        for (const t of loadTargets()) {
-            const el = block(t);
+        const title = t("remove_title");
+        for (const tg of loadTargets()) {
+            const el = block(tg);
             if (!el) continue;
-            const on = cfg.remove_x && enabled(t);
+            const on = cfg.remove_x && enabled(tg);
             const size = ["small", "large"].includes(cfg.x_size) ? cfg.x_size : "medium";
             el.classList.toggle("dragger-enh", !!on);
             el.classList.toggle("dragger-x-always", on && cfg.remove_x_mode === "always");
@@ -430,12 +489,12 @@
             for (const btn of el.querySelectorAll("button.thumbnail-item")) {
                 const x = btn.querySelector(":scope > .dragger-x");
                 if (!on) { if (x) x.remove(); continue; }
-                if (x) continue;
+                if (x) { if (x.title !== title) { x.title = title; x.setAttribute("aria-label", title); } continue; }
                 const span = document.createElement("span");
                 span.className = "dragger-x";
                 span.setAttribute("role", "button");
-                span.setAttribute("aria-label", "Quitar esta imagen");
-                span.title = "Quitar esta imagen";
+                span.setAttribute("aria-label", title);
+                span.title = title;
                 span.innerHTML = X_SVG;
                 btn.appendChild(span);
             }
@@ -460,25 +519,26 @@
 
     async function removeThumb(x) {
         const btn = x.closest("button.thumbnail-item");
-        const t = zoneOf(btn);
-        if (!btn || !t) return;
+        const tg = zoneOf(btn);
+        if (!btn || !tg) return;
+        const g = gname(tg);
         const img = btn.querySelector("img");
         const index = thumbIndex(btn);
         const grid = btn.classList.contains("thumbnail-lg");
         const block = btn.closest(".amg-image-gallery");
         x.classList.add("busy");
-        const r = await bridge(t, { action: "remove", index, src: img ? img.getAttribute("src") || img.src : "", grid });
+        const r = await bridge(tg, { action: "remove", index, src: img ? img.getAttribute("src") || img.src : "", grid });
         x.classList.remove("busy");
-        if (!r.ok) { toast(`No se ha podido quitar la imagen: ${r.error}`, "error"); return r; }
+        if (!r.ok) { toast(t("remove_failed", { e: r.error }), "error"); return r; }
         if (grid && block && r.total > 0) keepGrid(block);
         if (cfg.undo) {
-            toast(`Imagen quitada de ${t.label}`, "ok", { force: true, ms: 5000, actions: [{ label: "Deshacer", fn: async () => {
-                const u = await bridge(t, { action: "undo", token: r.token });
-                if (u.ok) toast(`Imagen restaurada en ${t.label} (total ${u.total})`, "ok");
-                else toast(`No se ha podido deshacer: ${u.error}`, "error");
+            toast(t("removed", { g }), "ok", { force: true, ms: 5000, actions: [{ label: t("undo"), fn: async () => {
+                const u = await bridge(tg, { action: "undo", token: r.token });
+                if (u.ok) toast(t("restored", { g, total: u.total }), "ok");
+                else toast(t("undo_failed", { e: u.error }), "error");
             } }] });
         } else {
-            toast(`Imagen quitada de ${t.label} (quedan ${r.total})`, "ok");
+            toast(t("removed_left", { g, total: r.total }), "ok");
         }
         return r;
     }
@@ -500,14 +560,55 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", observe); else observe();
 
     // ------------------------------------------------------------------ settings
-    function applySettings(json) {
-        try { cfg = typeof json === "string" ? JSON.parse(json) : json; } catch (e) { return; }
-        scheduleDecorate();
-        log("settings applied");
+    let tabLang = null, localizeWatch = null, tabRequest = null, serverSettingsLoaded = false;
+    // Ask the server to relabel the settings tab (built once in Python). The event's js step sends navigator.language
+    // and tabRequest: null on the first call (page load: the server answers with settings.json as it is now and picks
+    // the language from it), afterwards the language the page switched to. Until the answer arrives
+    // (applySettings(..., true)) the click is retried, in case the Gradio app wasn't listening yet.
+    function localizeTab(force) {
+        const want = lang();
+        if (!force && tabLang === want) return true;
+        const button = document.getElementById("dragger_localize");
+        if (!button) return false;
+        tabLang = want;
+        tabRequest = serverSettingsLoaded ? want : null;
+        clearTimeout(localizeWatch);
+        let tries = 0;
+        const click = () => {
+            button.click();
+            if (++tries < 8) localizeWatch = setTimeout(click, 1500);
+        };
+        localizeWatch = setTimeout(click, 30);
+        return true;
     }
+    // source: true = the answer of the "localize" event. The first one carries settings.json as it is now (the script
+    // was injected with the settings WanGP started with) and is applied; later ones only confirm the relabelling.
+    // "saved" = the settings tab's Save (which already relabelled the tab). Anything else: apply, relabel if needed.
+    function applySettings(json, source) {
+        let next;
+        try { next = typeof json === "string" ? JSON.parse(json) : json; } catch (e) { return; }
+        if (!next || typeof next !== "object") return;
+        const fromServer = source === true;
+        if (fromServer) {
+            clearTimeout(localizeWatch);
+            if (serverSettingsLoaded) return;
+            serverSettingsLoaded = true;
+        }
+        cfg = next;
+        scheduleDecorate();
+        for (const ov of overlays.values()) ov.remove();
+        overlays.clear();
+        if (fromServer || source === "saved") tabLang = lang(); else localizeTab(false);
+        log("settings applied, language:", lang());
+    }
+    (function initTab(tries) {   // once the Gradio app (and its hidden bridge) is in the page
+        if (localizeTab(true) || tries > 600) return;
+        setTimeout(() => initTab(tries + 1), 100);
+    })(0);
 
     window.dragger = { version: VERSION, get settings() { return cfg; }, applySettings, bridgeResponse, loadTargets,
-        visibleTargets, zoneOf, extract, addTo, removeThumb, pasteTarget, toast, decorate, _bridge: bridge,
-        inspect: key => { const t = loadTargets().find(x => x.key === key); return t ? bridge(t, { action: "inspect" }) : Promise.resolve({ ok: false, error: "galería desconocida" }); } };
+        visibleTargets, zoneOf, extract, addTo, removeThumb, pasteTarget, toast, decorate, _bridge: bridge, lang, t, I18N, localizeTab,
+        get tabRequest() { return tabRequest; },
+        inspect: key => { const tg = loadTargets().find(x => x.key === key); return tg ? bridge(tg, { action: "inspect" }) : Promise.resolve({ ok: false, error: t("unknown_gallery") }); } };
     log(`v${VERSION} loaded`);
 })();

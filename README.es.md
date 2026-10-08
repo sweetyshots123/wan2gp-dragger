@@ -1,6 +1,6 @@
 # Dragger: arrastra y pega imágenes en Wan2GP
 
-*[English](README.md)* · Licencia MIT · v1.0.1
+*[English](README.md)* · Licencia MIT · v1.1.0
 
 **Dragger** es un plugin para [Wan2GP / WanGP](https://github.com/deepbeepmeep/Wan2GP) que facilita meter imágenes en las galerías de imagen del generador:
 
@@ -11,6 +11,8 @@
 De serie, estas galerías solo aceptan que sueltes algo cuando están vacías, y pegar desde el portapapeles es complicado. En cuanto tienen imágenes ya no deja soltar ni pegar nuevas. Con Dragger puedes **soltar o pegar (Ctrl+V) imágenes siempre, y se añaden a las que ya hay**. Una **X** redonda en la esquina de cada miniatura quita solo esa imagen.
 
 Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobrevive a las actualizaciones de WanGP.
+
+> Dragger habla **español e inglés**. Por defecto sigue el idioma del navegador (español si está en español; si no, inglés) y en los ajustes puedes fijar uno (*Language / Idioma*). Ver [Idioma](#idioma).
 
 ## Funciones
 
@@ -40,7 +42,7 @@ Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobreviv
 - PNG, JPEG, WebP, BMP, GIF y TIFF se añaden tal cual: el mismo archivo que añadiría el botón **Add**.
 - **AVIF**, **ICO** y otros formatos que lee Pillow se convierten a **PNG**. **HEIC/HEIF** se convierte si `pillow-heif` está instalado en el Python de WanGP; si no, sale un mensaje de error claro.
 - A un archivo con la extensión equivocada o sin extensión (por ejemplo, una imagen del portapapeles) se le pone la correcta.
-- **Reducción automática** opcional de las imágenes cuyo lado mayor pase de un límite (desactivada por defecto). Las imágenes pegadas se llaman `portapapeles-AAAAMMDD-HHMMSS.png`.
+- **Reducción automática** opcional de las imágenes cuyo lado mayor pase de un límite (desactivada por defecto). Las imágenes pegadas se llaman `portapapeles-AAAAMMDD-HHMMSS.png` (`clipboard-…` cuando Dragger está en inglés).
 
 ## Cómo funciona (el estado de WanGP queda coherente)
 
@@ -56,6 +58,7 @@ Encuentra los componentes con la API de plugins (`request_component`) y funciona
 
 | Opción | Por defecto |
 |---|---|
+| Language / Idioma: *Auto (idioma del navegador)*, *English*, *Español* | Auto |
 | Arrastrar y soltar imágenes | activado |
 | Pegar con Ctrl+V | activado |
 | Descargar en el servidor las imágenes web que el navegador no deja leer | activado |
@@ -68,7 +71,18 @@ Encuentra los componentes con la API de plugins (`request_component`) y funciona
 | Ofrecer «Deshacer» durante 5 s | activado |
 | Mensajes de confirmación + Duración (los errores se muestran siempre) | activado, 3,5 s |
 
-Se guardan en `settings.json` en la carpeta del plugin y se aplican al momento en esa pestaña del navegador (en otras ya abiertas, al recargar). No hace falta reiniciar.
+Se guardan en `settings.json` en la carpeta del plugin y se aplican al momento en esa pestaña del navegador (en otras ya abiertas, al recargar). No hace falta reiniciar. Los valores que se guardan en `settings.json` (`end` / `start` / `after_selected`, `hover` / `always`, `small` / `medium` / `large`, `auto` / `en` / `es`) no dependen del idioma, así que un `settings.json` de una versión anterior sigue valiendo (se le añade `language: auto`).
+
+## Idioma
+
+Todos los textos de Dragger existen en español y en inglés: el texto al soltar, las confirmaciones, los mensajes de error (también los que devuelve el servidor, por ejemplo una descarga fallida), la pregunta de dónde pegar, el tooltip de la X, el aviso de deshacer, la pestaña de ajustes y el nombre de las imágenes pegadas.
+
+- **Auto** (por defecto): español si el idioma del navegador (`navigator.language`) empieza por `es`; si no, inglés.
+- **English** / **Español**: siempre ese idioma, tenga el navegador el que tenga.
+
+Al cambiar el idioma y pulsar **Guardar ajustes** cambia todo a la vez, sin reiniciar ni recargar: mensajes, tooltips y la propia pestaña de ajustes.
+
+Cómo sigue el idioma la pestaña de ajustes: WanGP construye la pestaña una sola vez, en Python, al arrancar, y en ese momento usa el idioma guardado (*Auto* → inglés). En cuanto carga la página, el script de Dragger envía el idioma del navegador al servidor con un evento oculto de Gradio y el servidor vuelve a rotular la pestaña (etiquetas, textos de ayuda, opciones y botones) con actualizaciones normales de Gradio. Guardar un idioma nuevo la rotula en ese mismo evento. Así la pestaña va siempre en el idioma de los mensajes. El título de la pestaña sigue siendo *Dragger*.
 
 ## Instalación
 
@@ -111,7 +125,7 @@ Probado con Wan2GP v17.17 (Gradio 5.29) en Chrome, contra la interfaz real de Wa
 
 ## Problemas
 
-- **No pasa nada al soltar o pegar:** activa el plugin en la pestaña Plugins, reinicia WanGP y recarga la página. La consola del navegador (F12) debe mostrar `[Dragger] v1.0.1: 6 galleries …`.
+- **No pasa nada al soltar o pegar:** activa el plugin en la pestaña Plugins, reinicia WanGP y recarga la página. La consola del navegador (F12) debe mostrar `[Dragger] v1.1.0: 6 galleries …`.
 - **Pega en la galería equivocada:** pon el ratón encima de la galería que quieres (o haz clic en ella) antes de pulsar Ctrl+V.
 - **Ctrl+V en un cuadro de texto pega texto:** es lo previsto. Haz clic fuera del cuadro primero.
 

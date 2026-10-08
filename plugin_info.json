@@ -1,8 +1,8 @@
 {
   "name": "Dragger",
   "author": "sweetyshots123",
-  "version": "1.0.1",
-  "description": "Drag & drop and paste (Ctrl+V) images into WanGP's start image, end image and reference image galleries, even when they already contain images: new images are appended (end, start or after the selected one) through WanGP's own Add handler, so the form state stays consistent. Files from the Explorer, images dragged from web pages, image links and data URLs (server-side download when the browser is blocked by CORS), clipboard screenshots and copied images; AVIF/HEIC/ICO converted to PNG, optional auto-downscale. Highlighted drop zones, confirmation and error messages, and a round X straddling the top-right corner of every thumbnail to remove just that image (with Undo). Settings in the 'Dragger' tab.",
+  "version": "1.1.0",
+  "description": "Drag & drop and paste (Ctrl+V) images into WanGP's start image, end image and reference image galleries, even when they already contain images: new images are appended (end, start or after the selected one) through WanGP's own Add handler, so the form state stays consistent. Files from the Explorer, images dragged from web pages, image links and data URLs (server-side download when the browser is blocked by CORS), clipboard screenshots and copied images; AVIF/HEIC/ICO converted to PNG, optional auto-downscale. Highlighted drop zones, confirmation and error messages, and a round X straddling the top-right corner of every thumbnail to remove just that image (with Undo). English and Spanish (follows the browser language or can be forced). Settings in the 'Dragger' tab.",
   "type": [
     "extension"
   ],

@@ -1,6 +1,6 @@
 # Dragger — drag & drop and paste images into Wan2GP
 
-*[Español](README.es.md)* · MIT License · v1.0.1
+*[Español](README.es.md)* · MIT License · v1.1.0
 
 **Dragger** is a plugin for [Wan2GP / WanGP](https://github.com/deepbeepmeep/Wan2GP) that makes it easy to put images into the generator's image galleries:
 
@@ -12,7 +12,7 @@ Out of the box, these galleries only accept a drop while they are empty, and pas
 
 It is a regular WanGP plugin. It doesn't modify any core WanGP file, so it survives WanGP updates.
 
-> The plugin's own UI text (settings tab, on-screen messages) is in Spanish. This README gives the English meaning of each Spanish label.
+> Dragger speaks **English and Spanish**. By default it follows the browser language (Spanish if it is Spanish, English otherwise); you can force either one in the settings (*Language / Idioma*). See [Language](#language).
 
 ## Features
 
@@ -21,28 +21,28 @@ It is a regular WanGP plugin. It doesn't modify any core WanGP file, so it survi
 - Works on **empty and non-empty galleries**. New images are **appended** without replacing or clearing anything, and the order you dropped them in is kept. The *Where to add* setting can put them at the start or right after the selected image instead (which is what WanGP's own **Add** button does).
 - If the browser isn't allowed to read a web image (CORS), the **WanGP server downloads it** (http/https only, 64 MB max, the result must be a real image).
 - You can also drag an image from one WanGP gallery to another, e.g. a start image into Reference Images.
-- **Visual feedback**: while you drag, the visible galleries get a dashed outline. The one under the pointer is highlighted with the label *Soltar para añadir a: Imagen de inicio / Imagen final / Referencias* (drop to add to: start image / end image / references).
+- **Visual feedback**: while you drag, the visible galleries get a dashed outline. The one under the pointer is highlighted with the label *Drop to add to: Start image / End image / Reference images*.
 
 **Paste (Ctrl+V)**
 - Pastes **screenshots** (Win+Shift+S, Print Screen), images copied in the browser (*Copy image*), **copied image files** and copied image links.
-- Which gallery gets the paste: the gallery **under the mouse pointer**, then the gallery you **last clicked in**. If only one target gallery is visible, it goes there. Otherwise a small message asks *¿Dónde pego la imagen?* (where should I paste the image?), with one button per gallery.
+- Which gallery gets the paste: the gallery **under the mouse pointer**, then the gallery you **last clicked in**. If only one target gallery is visible, it goes there. Otherwise a small message asks *Where should I paste the image?*, with one button per gallery.
 - **Doesn't hijack text paste**: in the prompt box and every other text field, Ctrl+V pastes text as usual.
 
 **Messages**
-- *Añadidas 3 imágenes a Referencias (total 7)* (3 images added to References, 7 in total) after each add.
+- *Added 3 images to Reference images (total 7)* after each add.
 - Red error messages: unsupported format, file that isn't an image, failed download (with the HTTP code), link to a web page instead of an image, and so on. When some images of a batch fail, the valid ones are still added and the failures are listed.
 
 **Remove a single image (X)**
 - A round **X** straddling the top-right corner of every thumbnail, mostly outside the picture so it doesn't cover it, in the thumbnail strip under the preview and in the grid view. Dark background, white glyph, red on hover. By default it shows on hover; it can also be always visible, and it comes in three sizes.
 - Clicking the picture itself (anywhere away from the X) still selects the thumbnail as usual.
 - A click on the X removes **only that image**. The rest keep their order, and the X click doesn't select the thumbnail or open the preview. The image that was selected stays selected; when you remove the selected image itself, the selection moves exactly as with WanGP's **Remove** button.
-- ***Imagen quitada · Deshacer*** (image removed · undo): for 5 s, **Deshacer** puts the image back at the same position.
+- ***Image removed · Undo***: for 5 s, **Undo** puts the image back at the same position.
 
 **Formats**
 - PNG, JPEG, WebP, BMP, GIF and TIFF are added as they are. That's the same file the **Add** button would add.
 - **AVIF**, **ICO** and other formats Pillow can read are converted to **PNG**. **HEIC/HEIF** is converted if `pillow-heif` is installed in WanGP's Python; otherwise you get a clear error message.
 - A file with a wrong or missing extension (e.g. a clipboard image) is renamed with the right one.
-- Optional **auto-downscale** of images whose longest side is above a limit (off by default). Pasted images are named `portapapeles-YYYYMMDD-HHMMSS.png` (*portapapeles* = clipboard).
+- Optional **auto-downscale** of images whose longest side is above a limit (off by default). Pasted images are named `clipboard-YYYYMMDD-HHMMSS.png` (`portapapeles-…` when Dragger is in Spanish).
 
 ## How it works (state stays consistent)
 
@@ -56,21 +56,33 @@ The plugin finds the components with the plugin API (`request_component("image_s
 
 ## Settings (Dragger tab)
 
-| Option (Spanish label) | Meaning | Default |
+| Option | Meaning | Default |
 |---|---|---|
-| Arrastrar y soltar imágenes | drag & drop on | on |
-| Pegar con Ctrl+V | paste on | on |
-| Descargar en el servidor las imágenes web que el navegador no deja leer | server download fallback for CORS-blocked web images | on |
-| Imagen de inicio / Imagen final / Referencias | which galleries are active | all |
-| Dónde se añaden las imágenes nuevas | where new images go: *Al final* (end), *Al principio* (start), *Después de la seleccionada* (after the selected one, like **Add**) | end |
-| Reducir las imágenes grandes + Lado mayor máximo (px) | auto-downscale and its limit | off, 2048 |
-| X para quitar cada imagen | per-thumbnail remove X | on |
-| Mostrar la X | show the X *on hover* or *always* | on hover |
-| Tamaño de la X | X size: *small* / *medium* / *large* (strip 15 / 18 / 22 px, grid 20 / 24 / 28 px) | medium |
-| Ofrecer «Deshacer» durante 5 s | undo after an X removal | on |
-| Mensajes de confirmación + Duración | confirmation messages and their duration (errors are always shown) | on, 3.5 s |
+| Language / Idioma | *Auto (browser language)*, *English* or *Español* | Auto |
+| Drag & drop images | drag & drop on | on |
+| Paste with Ctrl+V | paste on | on |
+| Download on the server the web images the browser can't read | server download fallback for CORS-blocked web images | on |
+| Start image / End image / Reference images | which galleries are active | all |
+| Where new images are added | *At the end*, *At the beginning*, *After the selected one* (like **Add**) | at the end |
+| Downscale large images + Maximum longest side (px) | auto-downscale and its limit | off, 2048 |
+| X to remove each image | per-thumbnail remove X | on |
+| Show the X | *On hover* or *Always visible* | on hover |
+| X size | *Small* / *Medium* / *Large* (strip 15 / 18 / 22 px, grid 20 / 24 / 28 px) | medium |
+| Offer “Undo” for 5 s | undo after an X removal | on |
+| Confirmation messages + Duration (seconds) | confirmation messages and their duration (errors are always shown) | on, 3.5 s |
 
-Settings are saved in `settings.json` in the plugin folder and apply immediately in that browser tab. Other open tabs pick them up when reloaded. No restart is needed.
+Settings are saved in `settings.json` in the plugin folder and apply immediately in that browser tab. Other open tabs pick them up when reloaded. No restart is needed. The keys stored in `settings.json` (`end` / `start` / `after_selected`, `hover` / `always`, `small` / `medium` / `large`, `auto` / `en` / `es`) don't depend on the language, so a `settings.json` from an older version keeps working (it gets `language: auto`).
+
+## Language
+
+Every text Dragger shows exists in English and Spanish: drop labels, confirmations, error messages (including the ones the server sends back, e.g. a failed download), the paste chooser, the X tooltip, the undo message, the settings tab, and the name given to pasted images.
+
+- **Auto** (default): Spanish if the browser language (`navigator.language`) starts with `es`, English otherwise.
+- **English** / **Español**: always that language, whatever the browser.
+
+Changing the language and clicking **Save settings** switches everything at once, with no restart and no reload: messages, tooltips and the settings tab itself.
+
+How the settings tab follows the language: WanGP builds the tab once, in Python, when it starts, so at that point it uses the saved language (*Auto* → English). As soon as the page loads, Dragger's script sends the browser language to the server through a hidden Gradio event, and the server relabels the tab (labels, help texts, choices, buttons) with normal Gradio updates. Saving a new language relabels it in the same event. The tab always matches the language of Dragger's messages. The tab title stays *Dragger*.
 
 ## Install
 
@@ -113,7 +125,7 @@ Tested with Wan2GP v17.17 (Gradio 5.29) in Chrome, against the real WanGP interf
 
 ## Troubleshooting
 
-- **Nothing happens on drop or paste:** enable the plugin in the Plugins tab, restart WanGP and reload the page. The browser console (F12) should show `[Dragger] v1.0.1: 6 galleries …`.
+- **Nothing happens on drop or paste:** enable the plugin in the Plugins tab, restart WanGP and reload the page. The browser console (F12) should show `[Dragger] v1.1.0: 6 galleries …`.
 - **Paste goes to the wrong gallery:** hover over the gallery you want (or click in it) before pressing Ctrl+V.
 - **Ctrl+V in a text box pastes text:** that's intended. Click outside the text box first.
 

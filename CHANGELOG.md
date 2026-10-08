@@ -2,6 +2,19 @@
 
 All notable changes to Dragger. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-10-08
+### Added
+- **English and Spanish.** Every user-facing text now comes from an i18n table with `en` and `es`: drop overlay (*Drop to add to: …* / *Soltar para añadir a: …*), gallery names, confirmations, errors, the paste chooser, the undo message (*Image removed · Undo* / *Imagen quitada · Deshacer*), the X tooltip and aria-label, the settings tab (labels, help texts, choices, save messages) and the error messages the server returns to the page (the page sends its language with every request).
+- **New setting `language`** (*Language / Idioma*): `auto` (default), `en`, `es`. *Auto* = Spanish when `navigator.language` starts with `es`, English otherwise. Switching applies live, with no restart or reload.
+- The settings tab follows the language too: it is built in Python in the saved language (*Auto* → English), then relabelled through a hidden Gradio event as soon as the page loads (with the browser language) and whenever the language changes. Its title stays *Dragger*.
+- Pasted images are named `clipboard-YYYYMMDD-HHMMSS.png` in English and `portapapeles-YYYYMMDD-HHMMSS.png` in Spanish; other fallback file names (`image`, `web-image`) follow the language as well.
+
+### Changed
+- Choice values stay stable internal keys (`end` / `start` / `after_selected`, `hover` / `always`, `small` / `medium` / `large`, `auto` / `en` / `es`); only their labels are translated. Old `settings.json` files without `language` keep working and get `auto`.
+
+### Fixed
+- A page loaded after the settings were changed got the settings WanGP had started with (the ones injected into the script). The page now reads `settings.json` when it loads, so other browser tabs pick up saved settings on reload, as documented.
+
 ## [1.0.1] - 2026-10-08
 ### Changed
 - **Bigger remove X, placed outside the thumbnail**: the X is now a round button straddling the thumbnail's top-right corner, mostly outside the picture (Magnific style), so it no longer covers the image. Dark semi-opaque background, thick white glyph, light border and shadow; turns red and grows slightly on hover. Its click area extends outwards, away from the picture, so a click on the picture still selects the thumbnail.
