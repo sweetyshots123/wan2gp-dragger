@@ -378,8 +378,8 @@ button.thumbnail-item.dragger-dragging { opacity: .35; outline: 2px dashed #60a5
     // ------------------------------------------------------------------ drag & drop
     let overlays = new Map(), dragTs = 0, dragWatch = null, dragSource = null, hoverKey = null;
     const isFileDrag = dt => !!dt && [...(dt.types || [])].some(t => t === "Files" || t === "text/uri-list" || t === "text/html");
-    function renderOverlays(activeKey) {
-        const vis = visibleTargets();
+    function renderOverlays(activeKey, skipKey) {
+        const vis = visibleTargets().filter(tg => tg.key !== skipKey);
         const keep = new Set();
         for (const tg of vis) {
             const el = block(tg);
@@ -556,7 +556,7 @@ button.thumbnail-item.dragger-dragging { opacity: .35; outline: 2px dashed #60a5
     window.addEventListener("dragend", () => { dragSource = null; clearOverlays(); reorderEnd(); }, true);
     const onOver = e => {
         if (reorderOver(e)) {   // keep showing the other galleries (a drop there copies the image)
-            if (cfg.drag_enabled) { dragTs = Date.now(); if (!dragWatch) dragWatch = setInterval(() => { if (Date.now() - dragTs > 250) clearOverlays(); }, 100); renderOverlays(null); }
+            if (cfg.drag_enabled) { dragTs = Date.now(); if (!dragWatch) dragWatch = setInterval(() => { if (Date.now() - dragTs > 250) clearOverlays(); }, 100); renderOverlays(null, reorder && reorder.tg.key); }
             return;
         }
         onDragOver(e);
