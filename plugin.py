@@ -77,6 +77,10 @@ TEXT = {
         "x_size": "X size", "x_size_info": "Sits on the top-right corner, mostly outside the thumbnail.",
         "size_small": "Small", "size_medium": "Medium", "size_large": "Large",
         "undo": "Offer \u201cUndo\u201d for 5 s",
+        "sec_order": "### Reordering",
+        "reorder": "Drag thumbnails to reorder them",
+        "reorder_info": "Drag a thumbnail and drop it where you want it: a bar shows where it will go. Same as using \u201cLeft\u201d / \u201cRight\u201d, "
+                        "the moved image stays selected. A click still selects; dragging it to another gallery still adds a copy there.",
         "toasts": "Confirmation messages", "toasts_info": "Errors are always shown.", "toast_s": "Duration (seconds)",
         "save": "Save settings",
         "saved": "\u2705 Settings saved and applied ({time}).",
@@ -91,7 +95,7 @@ TEXT = {
         "http_only": "only http(s) links can be downloaded", "download_failed": "download failed ({reason})",
         "too_big": "the image is larger than 64 MB", "not_image_link": "the link is not an image",
         "bad_index": "invalid index", "gallery_changed": "the gallery has changed, try again",
-        "gone": "the image is no longer in the gallery", "undo_expired": "can't undo any more", "file_gone": "the file no longer exists",
+        "gone": "the image is no longer in the gallery", "bad_move": "invalid position", "undo_expired": "can't undo any more", "file_gone": "the file no longer exists",
         "name_image": "image",
     },
     "es": {
@@ -117,6 +121,10 @@ TEXT = {
         "x_size": "Tamaño de la X", "x_size_info": "Va en la esquina superior derecha, casi toda por fuera de la miniatura.",
         "size_small": "Pequeña", "size_medium": "Mediana", "size_large": "Grande",
         "undo": "Ofrecer «Deshacer» durante 5 s",
+        "sec_order": "### Ordenar",
+        "reorder": "Arrastrar las miniaturas para cambiar el orden",
+        "reorder_info": "Arrastra una miniatura y suéltala donde la quieras: una barra marca dónde quedará. Igual que «Left» / «Right», "
+                        "la imagen movida queda seleccionada. Un clic sigue seleccionando; arrastrarla a otra galería sigue añadiendo una copia allí.",
         "toasts": "Mensajes de confirmación", "toasts_info": "Los errores se muestran siempre.", "toast_s": "Duración (segundos)",
         "save": "Guardar ajustes",
         "saved": "\u2705 Ajustes guardados y aplicados ({time}).",
@@ -130,7 +138,7 @@ TEXT = {
         "http_only": "solo se pueden descargar enlaces http(s)", "download_failed": "descarga fallida ({reason})",
         "too_big": "la imagen pesa más de 64 MB", "not_image_link": "el enlace no es una imagen",
         "bad_index": "índice no válido", "gallery_changed": "la galería ha cambiado, vuelve a intentarlo",
-        "gone": "la imagen ya no está en la galería", "undo_expired": "ya no se puede deshacer", "file_gone": "el archivo ya no existe",
+        "gone": "la imagen ya no está en la galería", "bad_move": "posición no válida", "undo_expired": "ya no se puede deshacer", "file_gone": "el archivo ya no existe",
         "name_image": "imagen",
     },
 }
@@ -180,6 +188,7 @@ DEFAULT_SETTINGS = {
     "remove_x_mode": "hover",    # "hover" | "always"
     "x_size": "medium",          # "small" | "medium" | "large" (round X straddling the thumbnail's top-right corner)
     "undo": True,                # "Image removed · Undo" for 5 s after an X removal
+    "reorder": True,             # drag a thumbnail within its gallery to move it (WanGP's own Left/Right handler, step by step)
 }
 _CHOICES = {"position": ("end", "start", "after_selected"), "remove_x_mode": ("hover", "always"), "x_size": ("small", "medium", "large"),
             "language": ("auto",) + LANGS}
@@ -355,7 +364,7 @@ class DraggerPlugin(WAN2GPPlugin):
     # (hidden "localize" button + the browser language) to relabel it in the resolved language, and saving a new
     # language relabels it in the same event: the tab always matches the language of Dragger's messages.
     TAB_KEYS = ("intro", "language", "sec_input", "drag_enabled", "paste_enabled", "remote", "t_image_start", "t_image_end", "t_image_refs",
-                "position", "downscale", "max_side", "sec_remove", "remove_x", "remove_x_mode", "x_size", "undo", "sec_messages",
+                "position", "downscale", "max_side", "sec_remove", "remove_x", "remove_x_mode", "x_size", "undo", "sec_order", "reorder", "sec_messages",
                 "toasts", "toast_s", "save")
 
     @staticmethod
@@ -375,6 +384,7 @@ class DraggerPlugin(WAN2GPPlugin):
             "remove_x": {"label": t("remove_x")}, "remove_x_mode": {"label": t("remove_x_mode"), "choices": x_mode_choices(lang)},
             "x_size": {"label": t("x_size"), "info": t("x_size_info"), "choices": x_size_choices(lang)},
             "undo": {"label": t("undo")},
+            "sec_order": {"value": t("sec_order")}, "reorder": {"label": t("reorder"), "info": t("reorder_info")},
             "toasts": {"label": t("toasts"), "info": t("toasts_info")}, "toast_s": {"label": t("toast_s")},
             "save": {"value": t("save")},
         }
@@ -413,6 +423,10 @@ class DraggerPlugin(WAN2GPPlugin):
                 ui["x_size"] = gr.Dropdown(value=current("x_size"), elem_id="dragger_x_size", **tx["x_size"])
                 ui["undo"] = gr.Checkbox(value=current("undo"), elem_id="dragger_undo", **tx["undo"])
         with gr.Group():
+            ui["sec_order"] = gr.Markdown(tx["sec_order"]["value"])
+            with gr.Row():
+                ui["reorder"] = gr.Checkbox(value=current("reorder"), elem_id="dragger_reorder", **tx["reorder"])
+        with gr.Group():
             ui["sec_messages"] = gr.Markdown(tx["sec_messages"]["value"])
             with gr.Row():
                 ui["toasts"] = gr.Checkbox(value=current("toasts"), elem_id="dragger_toasts", **tx["toasts"])
@@ -444,7 +458,7 @@ class DraggerPlugin(WAN2GPPlugin):
             fn=None, inputs=[settings_json], outputs=None, js="(s) => { if (window.dragger) window.dragger.applySettings(s, true); }")
 
         inputs = [ui[k] for k in ("drag_enabled", "paste_enabled", "remote", "t_image_start", "t_image_end", "t_image_refs", "position", "downscale",
-                                  "max_side", "remove_x", "remove_x_mode", "undo", "toasts", "toast_s", "x_size", "language")] + [browser_lang]
+                                  "max_side", "remove_x", "remove_x_mode", "undo", "toasts", "toast_s", "x_size", "language", "reorder")] + [browser_lang]
         ui["save"].click(fn=self._save_from_ui, inputs=inputs, outputs=[status, settings_json] + tab_outputs, show_progress="hidden",
                          js="(...a) => { a[a.length - 1] = navigator.language || ''; return a; }").then(
             fn=None, inputs=[settings_json], outputs=None, js="(s) => { if (window.dragger) window.dragger.applySettings(s, 'saved'); }")
@@ -468,9 +482,9 @@ class DraggerPlugin(WAN2GPPlugin):
         return (json.dumps(settings), *self.tab_updates(lang))
 
     def _save_from_ui(self, drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side,
-                      remove_x, remove_x_mode, undo, toasts, toast_s, x_size="medium", language="auto", browser_lang=""):
+                      remove_x, remove_x_mode, undo, toasts, toast_s, x_size="medium", language="auto", reorder=True, browser_lang=""):
         settings = self.apply_ui_values(drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side,
-                                        remove_x, remove_x_mode, undo, toasts, toast_s, x_size, language)
+                                        remove_x, remove_x_mode, undo, toasts, toast_s, x_size, language, reorder)
         lang = resolve_lang(settings["language"], browser_lang)
         try:
             save_settings(settings)
@@ -481,14 +495,14 @@ class DraggerPlugin(WAN2GPPlugin):
     @staticmethod
     def apply_ui_values(drag_enabled=True, paste_enabled=True, remote=True, t_start=True, t_end=True, t_refs=True, position="end",
                         downscale=False, max_side=2048, remove_x=True, remove_x_mode="hover", undo=True, toasts=True, toast_s=3.5,
-                        x_size="medium", language="auto"):
+                        x_size="medium", language="auto", reorder=True):
         settings = copy.deepcopy(DEFAULT_SETTINGS)
         settings.update({"drag_enabled": bool(drag_enabled), "paste_enabled": bool(paste_enabled), "remote_download": bool(remote),
                          "targets": {"image_start": bool(t_start), "image_end": bool(t_end), "image_refs": bool(t_refs)},
                          "position": _coerce("position", "end", position), "downscale": bool(downscale),
                          "max_side": _coerce("max_side", 2048, max_side), "remove_x": bool(remove_x),
                          "remove_x_mode": _coerce("remove_x_mode", "hover", remove_x_mode), "x_size": _coerce("x_size", "medium", x_size),
-                         "language": _coerce("language", "auto", language), "undo": bool(undo), "toasts": bool(toasts),
+                         "language": _coerce("language", "auto", language), "undo": bool(undo), "reorder": bool(reorder), "toasts": bool(toasts),
                          "toast_ms": _coerce("toast_ms", 3500, (toast_s or 0) * 1000 if isinstance(toast_s, (int, float)) else None)})
         return settings
 
@@ -520,6 +534,8 @@ class DraggerPlugin(WAN2GPPlugin):
                 out, out_gallery, out_state = self.remove_image(key, req, gallery, state)
             elif action == "undo":
                 out, out_gallery, out_state = self.undo_remove(key, req, gallery, state)
+            elif action == "move":
+                out, out_gallery, out_state = self.move_image(key, req, gallery, state)
             elif action == "inspect":   # read-only: what the form holds (diagnostics, tests)
                 out = self.inspect(gallery, state)
             else:
@@ -776,3 +792,50 @@ class DraggerPlugin(WAN2GPPlugin):
         st["items"], st["selected"] = items, sel
         record_last_action(st, "add")
         return {"ok": True, "index": items.index(undo["item"]), "total": len(items)}, self.amg()._gallery_update(st, value=items, selected_index=sel), st
+
+    # ------------------------------------------------------------ move (drag to reorder)
+    def move_image(self, key, req, gallery, state):
+        """Move the thumbnail at req["index"] to position req["to"] (final index, 0-based) of the same gallery.
+        Runs WanGP's own Left/Right handler (AdvancedMediaGallery._on_move(-1 / +1), exactly what those buttons run)
+        once per step, on the real gallery value + gr.State: the gallery value and the state the generation reads end
+        up exactly as if the user had selected the image and pressed Left/Right that many times. The moved image is
+        selected, like with Left/Right (in the grid view the grid is kept)."""
+        from shared.gradio.gallery import get_gradio_file_path, get_list, get_state
+        st = get_state(state)
+        cur = get_list(gallery)
+        try:
+            index, to = int(req.get("index")), int(req.get("to"))
+        except Exception:
+            raise DraggerError("bad_index")
+        if st.get("single", False):
+            raise DraggerError("bad_move")
+        src = _path_from_file_url(req.get("src"))
+        paths = [get_gradio_file_path(it) for it in cur]
+        if src:
+            if not (0 <= index < len(cur) and paths[index] == src):
+                matches = [i for i, p in enumerate(paths) if p == src]
+                if not matches:
+                    raise DraggerError("gallery_changed")
+                index = min(matches, key=lambda i: abs(i - index))
+        if not (0 <= index < len(cur)):
+            raise DraggerError("gone")
+        if not (0 <= to < len(cur)):
+            raise DraggerError("bad_move")
+        name = os.path.basename(paths[index] or "")
+        if to == index:
+            return {"ok": True, "moved": False, "index": index, "to": to, "total": len(cur), "name": name}, gr.skip(), gr.skip()
+        amg = self.amg()
+        st["selected"] = index
+        items = cur
+        step = 1 if to > index else -1
+        for _ in range(abs(to - index)):
+            _update, nxt = amg._on_move(step, st, items)    # WanGP's Left (-1) / Right (+1)
+            if not isinstance(nxt, dict):                     # gr.skip(): selection out of range, nothing moved
+                raise DraggerError("gallery_changed")
+            st, items = nxt, nxt["items"]
+        sel = st["selected"]
+        if req.get("grid"):
+            st["selected"] = sel = None
+        gallery_update = amg._gallery_update(st, value=items, selected_index=sel)
+        return {"ok": True, "moved": True, "index": index, "to": to, "total": len(items), "name": name,
+                "steps": abs(to - index)}, gallery_update, st
