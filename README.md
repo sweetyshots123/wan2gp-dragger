@@ -1,6 +1,6 @@
 # Dragger — drag & drop and paste images into Wan2GP
 
-*[Español](README.es.md)* · MIT License · v1.1.0
+*[Español](README.es.md)* · MIT License · v1.2.0
 
 **Dragger** is a plugin for [Wan2GP / WanGP](https://github.com/deepbeepmeep/Wan2GP) that makes it easy to put images into the generator's image galleries:
 
@@ -8,7 +8,7 @@
 - **End Image(s)**
 - **Reference Images**
 
-Out of the box, these galleries only accept a drop while they are empty, and pasting from the clipboard is awkward. Once a gallery holds images you can't drop or paste new ones at all. With Dragger you can **drop or paste (Ctrl+V) images at any time, and they are added to the images already there**. A round **X** on the corner of every thumbnail removes just that image.
+Out of the box, these galleries only accept a drop while they are empty, and pasting from the clipboard is awkward. Once a gallery holds images you can't drop or paste new ones at all. With Dragger you can **drop or paste (Ctrl+V) images at any time, and they are added to the images already there**. A round **X** on the corner of every thumbnail removes just that image, and you can **drag a thumbnail to change the order** instead of clicking Left / Right.
 
 It is a regular WanGP plugin. It doesn't modify any core WanGP file, so it survives WanGP updates.
 
@@ -38,6 +38,12 @@ It is a regular WanGP plugin. It doesn't modify any core WanGP file, so it survi
 - A click on the X removes **only that image**. The rest keep their order, and the X click doesn't select the thumbnail or open the preview. The image that was selected stays selected; when you remove the selected image itself, the selection moves exactly as with WanGP's **Remove** button.
 - ***Image removed · Undo***: for 5 s, **Undo** puts the image back at the same position.
 
+**Reorder by dragging**
+- **Drag a thumbnail** (in the strip under the preview or in the grid view) and drop it where it should go in the same gallery. A bright **insertion bar** shows where it will land, with *Move to position N*; the dragged thumbnail is dimmed. The strip / grid scrolls by itself when you hold the pointer near its edge.
+- The move is done by **WanGP's own Left / Right handler** (`_on_move`), applied step by step on the server: the gallery, its state and **the order the generation uses** end up exactly as if you had selected the image and pressed Left / Right that many times. The moved image is selected, like with Left / Right (in the grid view the grid stays open). *Moved to position 3 of 5 in Reference images*.
+- A plain click still selects the thumbnail (the drag only starts once the mouse moves). Dropping it back on its own place, or on the big preview, does nothing. Dropped on **another** gallery it is still **copied** there, and files dragged from outside are still added as before. Galleries holding a single image have nothing to reorder.
+- Works in every gallery that has Left / Right: start images, end images and reference images, in the generator form and in the queue's Edit tab. Can be turned off (*Drag thumbnails to reorder them*).
+
 **Formats**
 - PNG, JPEG, WebP, BMP, GIF and TIFF are added as they are. That's the same file the **Add** button would add.
 - **AVIF**, **ICO** and other formats Pillow can read are converted to **PNG**. **HEIC/HEIF** is converted if `pillow-heif` is installed in WanGP's Python; otherwise you get a clear error message.
@@ -50,7 +56,7 @@ WanGP's start, end and reference galleries are `AdvancedMediaGallery` components
 
 1. The browser script (`dragger.js`, injected with the official `add_custom_js` API) intercepts the drop or paste over a target gallery. It reads the files or URLs and uploads the images with **Gradio's own upload endpoint** (the same one the Add button uses).
 2. Through a hidden bridge (a textbox plus one button per gallery, built in the *Dragger* tab), it fires a normal Gradio event whose inputs are the request, **that gallery and its `gr.State`**.
-3. The server handler validates and converts the images, then calls **WanGP's own `_on_add`**. For the X it calls **`_on_remove`** on the clicked thumbnail. It returns the gallery update and the state through that event, so the form, the gallery label (`(WxH)`), **Remove / Left / Right / Clear** and the generation all see exactly what the Add/Remove buttons would have produced. Nothing is faked in the DOM.
+3. The server handler validates and converts the images, then calls **WanGP's own `_on_add`**. For the X it calls **`_on_remove`** on the clicked thumbnail, and for a drag-to-reorder it calls **`_on_move`** (Left / Right) once per position. It returns the gallery update and the state through that event, so the form, the gallery label (`(WxH)`), **Remove / Left / Right / Clear** and the generation all see exactly what the Add/Remove buttons would have produced. Nothing is faked in the DOM.
 
 The plugin finds the components with the plugin API (`request_component("image_start" / "image_end" / "image_refs" and their "*_extra")`). It works both in the generator form and in the queue's **Edit** tab.
 
@@ -69,6 +75,7 @@ The plugin finds the components with the plugin API (`request_component("image_s
 | Show the X | *On hover* or *Always visible* | on hover |
 | X size | *Small* / *Medium* / *Large* (strip 15 / 18 / 22 px, grid 20 / 24 / 28 px) | medium |
 | Offer “Undo” for 5 s | undo after an X removal | on |
+| Drag thumbnails to reorder them | drag a thumbnail inside its gallery to move it (WanGP's Left / Right) | on |
 | Confirmation messages + Duration (seconds) | confirmation messages and their duration (errors are always shown) | on, 3.5 s |
 
 Settings are saved in `settings.json` in the plugin folder and apply immediately in that browser tab. Other open tabs pick them up when reloaded. No restart is needed. The keys stored in `settings.json` (`end` / `start` / `after_selected`, `hover` / `always`, `small` / `medium` / `large`, `auto` / `en` / `es`) don't depend on the language, so a `settings.json` from an older version keeps working (it gets `language: auto`).
@@ -111,7 +118,7 @@ Plugins tab → **Uninstall** next to Dragger (or disable it and delete `Wan2GP/
 
 ## Compatibility
 
-Tested with Wan2GP v17.17 (Gradio 5.29) in Chrome, against the real WanGP interface (LTX-2 model, *Start with Image* + *End Image(s)* + *Inject Frames* reference images). Other Chromium browsers (Edge) behave the same.
+Tested with Wan2GP v17.17 (Gradio 5.29) in Chrome, against the real WanGP interface (LTX-2 model, *Start with Image* + *End Image(s)* + *Inject Frames* reference images). Reordering (1.2.0) was tested with Wan2GP v18.21 (MiniMax H3 FL2VA, same galleries), light and dark theme. Other Chromium browsers (Edge) behave the same.
 
 ## Limitations
 
@@ -125,7 +132,7 @@ Tested with Wan2GP v17.17 (Gradio 5.29) in Chrome, against the real WanGP interf
 
 ## Troubleshooting
 
-- **Nothing happens on drop or paste:** enable the plugin in the Plugins tab, restart WanGP and reload the page. The browser console (F12) should show `[Dragger] v1.1.0: 6 galleries …`.
+- **Nothing happens on drop or paste:** enable the plugin in the Plugins tab, restart WanGP and reload the page. The browser console (F12) should show `[Dragger] v1.2.0: 6 galleries …`.
 - **Paste goes to the wrong gallery:** hover over the gallery you want (or click in it) before pressing Ctrl+V.
 - **Ctrl+V in a text box pastes text:** that's intended. Click outside the text box first.
 
