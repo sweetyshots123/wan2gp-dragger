@@ -1,6 +1,6 @@
 # Dragger: arrastra y pega imágenes en Wan2GP
 
-*[English](README.md)* · Licencia MIT · v1.1.0
+*[English](README.md)* · Licencia MIT · v1.2.0
 
 **Dragger** es un plugin para [Wan2GP / WanGP](https://github.com/deepbeepmeep/Wan2GP) que facilita meter imágenes en las galerías de imagen del generador:
 
@@ -8,7 +8,7 @@
 - **End Image(s)** (imagen final)
 - **Reference Images** (referencias)
 
-De serie, estas galerías solo aceptan que sueltes algo cuando están vacías, y pegar desde el portapapeles es complicado. En cuanto tienen imágenes ya no deja soltar ni pegar nuevas. Con Dragger puedes **soltar o pegar (Ctrl+V) imágenes siempre, y se añaden a las que ya hay**. Una **X** redonda en la esquina de cada miniatura quita solo esa imagen.
+De serie, estas galerías solo aceptan que sueltes algo cuando están vacías, y pegar desde el portapapeles es complicado. En cuanto tienen imágenes ya no deja soltar ni pegar nuevas. Con Dragger puedes **soltar o pegar (Ctrl+V) imágenes siempre, y se añaden a las que ya hay**. Una **X** redonda en la esquina de cada miniatura quita solo esa imagen, y puedes **arrastrar una miniatura para cambiar el orden** en vez de pulsar Left / Right.
 
 Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobrevive a las actualizaciones de WanGP.
 
@@ -38,6 +38,12 @@ Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobreviv
 - Al pulsarla se quita **solo esa imagen**. Las demás mantienen su orden, y el clic en la X no selecciona la miniatura ni abre la vista previa. La imagen que estaba seleccionada sigue seleccionada; si quitas la seleccionada, la selección se mueve igual que con el botón **Remove** de WanGP.
 - ***Imagen quitada · Deshacer***: durante 5 s, **Deshacer** la vuelve a poner en la misma posición.
 
+**Ordenar arrastrando**
+- **Arrastra una miniatura** (en la tira bajo la vista previa o en la cuadrícula) y suéltala donde deba ir dentro de la misma galería. Una **barra de inserción** bien visible marca dónde caerá, con *Mover a la posición N*; la miniatura arrastrada se atenúa. La tira o la cuadrícula se desplazan solas si mantienes el puntero cerca del borde.
+- El cambio lo hace **el propio manejador Left / Right de WanGP** (`_on_move`), paso a paso en el servidor: la galería, su estado y **el orden que usa la generación** quedan exactamente como si hubieras seleccionado la imagen y pulsado Left / Right esas veces. La imagen movida queda seleccionada, como con Left / Right (en la cuadrícula, la cuadrícula sigue abierta). *Movida a la posición 3 de 5 en Referencias*.
+- Un clic normal sigue seleccionando la miniatura (el arrastre solo empieza cuando mueves el ratón). Soltarla en su mismo sitio, o sobre la vista previa grande, no hace nada. Soltada en **otra** galería se sigue **copiando** allí, y los archivos arrastrados desde fuera se siguen añadiendo como antes. Las galerías con una sola imagen no tienen nada que ordenar.
+- Funciona en todas las galerías que tienen Left / Right: imágenes de inicio, finales y de referencia, en el formulario y en la pestaña Edit de la cola. Se puede desactivar (*Arrastrar las miniaturas para cambiar el orden*).
+
 **Formatos**
 - PNG, JPEG, WebP, BMP, GIF y TIFF se añaden tal cual: el mismo archivo que añadiría el botón **Add**.
 - **AVIF**, **ICO** y otros formatos que lee Pillow se convierten a **PNG**. **HEIC/HEIF** se convierte si `pillow-heif` está instalado en el Python de WanGP; si no, sale un mensaje de error claro.
@@ -50,7 +56,7 @@ Las galerías de inicio, final y referencias de WanGP son componentes `AdvancedM
 
 1. El script del navegador (`dragger.js`, inyectado con la API oficial `add_custom_js`) intercepta lo que sueltas o pegas sobre una galería. Lee los archivos o URL y sube las imágenes con **el endpoint de subida de Gradio** (el mismo que usa el botón Add).
 2. Con un puente oculto (un cuadro de texto y un botón por galería, en la pestaña *Dragger*), lanza un evento normal de Gradio cuyas entradas son la petición, **esa galería y su `gr.State`**.
-3. El servidor valida y convierte las imágenes y llama al **`_on_add` del propio WanGP**; para la X llama a **`_on_remove`** sobre la miniatura pulsada. Devuelve la galería y el estado por ese mismo evento. Así el formulario, la etiqueta `(AnchoxAlto)`, **Remove / Left / Right / Clear** y la generación ven exactamente lo que habrían dejado los botones Add/Remove. No se simula nada en la página.
+3. El servidor valida y convierte las imágenes y llama al **`_on_add` del propio WanGP**; para la X llama a **`_on_remove`** sobre la miniatura pulsada, y al ordenar arrastrando llama a **`_on_move`** (Left / Right) una vez por posición. Devuelve la galería y el estado por ese mismo evento. Así el formulario, la etiqueta `(AnchoxAlto)`, **Remove / Left / Right / Clear** y la generación ven exactamente lo que habrían dejado los botones Add/Remove. No se simula nada en la página.
 
 Encuentra los componentes con la API de plugins (`request_component`) y funciona en el formulario del generador y en la pestaña **Edit** de la cola.
 
@@ -69,6 +75,7 @@ Encuentra los componentes con la API de plugins (`request_component`) y funciona
 | Mostrar la X: *Al pasar el ratón* / *Siempre visible* | al pasar el ratón |
 | Tamaño de la X: *Pequeña* / *Mediana* / *Grande* (tira 15 / 18 / 22 px, cuadrícula 20 / 24 / 28 px) | mediana |
 | Ofrecer «Deshacer» durante 5 s | activado |
+| Arrastrar las miniaturas para cambiar el orden (Left / Right de WanGP) | activado |
 | Mensajes de confirmación + Duración (los errores se muestran siempre) | activado, 3,5 s |
 
 Se guardan en `settings.json` en la carpeta del plugin y se aplican al momento en esa pestaña del navegador (en otras ya abiertas, al recargar). No hace falta reiniciar. Los valores que se guardan en `settings.json` (`end` / `start` / `after_selected`, `hover` / `always`, `small` / `medium` / `large`, `auto` / `en` / `es`) no dependen del idioma, así que un `settings.json` de una versión anterior sigue valiendo (se le añade `language: auto`).
@@ -111,7 +118,7 @@ Pestaña Plugins → **Uninstall** junto a Dragger (o desactívalo y borra `Wan2
 
 ## Compatibilidad
 
-Probado con Wan2GP v17.17 (Gradio 5.29) en Chrome, contra la interfaz real de WanGP (modelo LTX-2 con *Start with Image* + *End Image(s)* + referencias de *Inject Frames*). Otros navegadores Chromium (Edge) se comportan igual.
+Probado con Wan2GP v17.17 (Gradio 5.29) en Chrome, contra la interfaz real de WanGP (modelo LTX-2 con *Start with Image* + *End Image(s)* + referencias de *Inject Frames*). La ordenación (1.2.0) se probó con Wan2GP v18.21 (MiniMax H3 FL2VA, mismas galerías), con tema claro y oscuro. Otros navegadores Chromium (Edge) se comportan igual.
 
 ## Limitaciones
 
@@ -125,7 +132,7 @@ Probado con Wan2GP v17.17 (Gradio 5.29) en Chrome, contra la interfaz real de Wa
 
 ## Problemas
 
-- **No pasa nada al soltar o pegar:** activa el plugin en la pestaña Plugins, reinicia WanGP y recarga la página. La consola del navegador (F12) debe mostrar `[Dragger] v1.1.0: 6 galleries …`.
+- **No pasa nada al soltar o pegar:** activa el plugin en la pestaña Plugins, reinicia WanGP y recarga la página. La consola del navegador (F12) debe mostrar `[Dragger] v1.2.0: 6 galleries …`.
 - **Pega en la galería equivocada:** pon el ratón encima de la galería que quieres (o haz clic en ella) antes de pulsar Ctrl+V.
 - **Ctrl+V en un cuadro de texto pega texto:** es lo previsto. Haz clic fuera del cuadro primero.
 

@@ -2,6 +2,16 @@
 
 All notable changes to Dragger. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-10-26
+### Added
+- **Drag a thumbnail to reorder its gallery** (*Arrastrar las miniaturas para cambiar el orden*), instead of selecting it and clicking Left / Right. Works in the thumbnail strip under the preview and in the grid view, in every gallery with Left / Right (start, end and reference images, generator form and queue *Edit* tab).
+- The move runs **WanGP's own Left / Right handler** (`AdvancedMediaGallery._on_move`) step by step on the real gallery value and `gr.State`, so the gallery, the state and the order the generation reads are exactly what Left / Right would give. The moved image is selected (like Left / Right); in the grid view the grid stays open. Confirmation *Moved to position N of M in …* / *Movida a la posición N de M en …*.
+- **Insertion bar** while dragging (bright accent with a dark halo, readable on the dark and the light theme) with a *Move to position N* / *Mover a la posición N* badge; the dragged thumbnail is dimmed; the strip / grid autoscrolls near its edges. No bar (and nothing happens) when the drop would not change anything or the pointer is over the big preview.
+- New setting `reorder` (default on). Old `settings.json` files without it get `true`.
+
+### Unchanged
+- A plain click still selects a thumbnail; dragging a thumbnail onto **another** gallery still copies it there; files / web images dragged from outside are still added; the remove X still works. The source gallery no longer shows the "drop to add" outline while it is being reordered.
+
 ## [1.1.0] - 2026-10-08
 ### Added
 - **English and Spanish.** Every user-facing text now comes from an i18n table with `en` and `es`: drop overlay (*Drop to add to: …* / *Soltar para añadir a: …*), gallery names, confirmations, errors, the paste chooser, the undo message (*Image removed · Undo* / *Imagen quitada · Deshacer*), the X tooltip and aria-label, the settings tab (labels, help texts, choices, save messages) and the error messages the server returns to the page (the page sends its language with every request).
