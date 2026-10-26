@@ -30,6 +30,8 @@
             upload_failed_http: "upload failed (HTTP {status})", upload_failed: "upload failed", not_image: "not an image",
             no_images: "no images", unknown_gallery: "unknown gallery",
             paste_prefix: "clipboard", web_image: "web-image", image: "image",
+            moved: "Moved to position {pos} of {total} in {g}", move_failed: "Could not move the image: {e}",
+            move_here: "Move to position {pos}",
         },
         es: {
             g_image_start: "Imagen de inicio", g_image_end: "Imagen final", g_image_refs: "Referencias",
@@ -51,6 +53,8 @@
             upload_failed_http: "subida fallida (HTTP {status})", upload_failed: "subida fallida", not_image: "no es una imagen",
             no_images: "no hay imágenes", unknown_gallery: "galería desconocida",
             paste_prefix: "portapapeles", web_image: "imagen-web", image: "imagen",
+            moved: "Movida a la posición {pos} de {total} en {g}", move_failed: "No se ha podido mover la imagen: {e}",
+            move_here: "Mover a la posición {pos}",
         },
     };
     const browserLang = () => String(navigator.language || (navigator.languages && navigator.languages[0]) || "");
@@ -115,6 +119,18 @@
 .amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x:hover { background: #e11d48; border-color: #fff; transform: scale(1.12); }
 .amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x.busy { opacity: .4 !important; pointer-events: none; }
 @media (hover: none) { .amg-image-gallery.dragger-enh button.thumbnail-item > .dragger-x { opacity: 1; transform: none; } }
+/* drag to reorder: the insertion bar (fixed, above everything), its position badge and the dimmed dragged thumbnail.
+   Bright accent + dark halo: readable on the dark theme as well as on the light one. */
+.dragger-insert { position: fixed; z-index: 10050; pointer-events: none; width: 4px; border-radius: 3px; background: #60a5fa;
+  box-shadow: 0 0 0 1.5px rgba(10, 14, 24, .85), 0 0 10px 2px rgba(96, 165, 250, .75); transform: translateX(-50%); display: none; }
+.dragger-insert::before, .dragger-insert::after { content: ""; position: absolute; left: 50%; width: 10px; height: 10px; border-radius: 50%;
+  background: #60a5fa; transform: translateX(-50%); box-shadow: 0 0 0 1.5px rgba(10, 14, 24, .85); }
+.dragger-insert::before { top: -6px; } .dragger-insert::after { bottom: -6px; }
+.dragger-insert > span { position: absolute; bottom: calc(100% + 9px); left: 50%; transform: translateX(-50%); white-space: nowrap;
+  padding: 3px 8px; border-radius: 6px; background: rgba(17, 24, 39, .95); color: #fff; border: 1px solid #60a5fa;
+  font: 600 12px/1.3 system-ui, sans-serif; box-shadow: 0 3px 12px rgba(0,0,0,.45); }
+.dragger-insert.on { display: block; }
+button.thumbnail-item.dragger-dragging { opacity: .35; outline: 2px dashed #60a5fa; outline-offset: 1px; }
 `;
     document.head.appendChild(style);
     const X_SVG = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" fill="none"/></svg>';
@@ -418,11 +434,136 @@
         if (!hasPayload(x)) { toast(t("no_image_found", { g: gname(tg) }), "error"); return; }
         addTo(tg, x, "drop");
     }
-    window.addEventListener("dragstart", e => { dragSource = zoneOf(e.target); }, true);
-    window.addEventListener("dragend", () => { dragSource = null; clearOverlays(); }, true);
-    window.addEventListener("dragenter", onDragOver, true);
-    window.addEventListener("dragover", onDragOver, true);
-    window.addEventListener("drop", onDrop, true);
+    // ------------------------------------------------------------------ drag a thumbnail to reorder its gallery
+    // The thumbnails are natively draggable (their <img>); the drag only starts once the mouse has moved, so a plain
+    // click still selects. Dropped on its own gallery = move (the server runs WanGP's Left/Right handler step by step,
+    // see plugin.py move_image); dropped on another gallery = copy (the existing add); files from outside: unchanged.
+    let reorder = null, insertBar = null;
+    const reorderOn = () => cfg.reorder !== false;
+    function thumbList(container) { return [...container.querySelectorAll(":scope > button.thumbnail-item")]; }
+    function reorderStart(e) {
+        reorder = null;
+        if (!reorderOn()) return;
+        const btn = e.target && e.target.closest && e.target.closest("button.thumbnail-item");
+        const tg = btn && zoneOf(btn);
+        if (!tg || !btn.parentElement) return;
+        const list = thumbList(btn.parentElement);
+        if (list.length < 2) return;
+        const img = btn.querySelector("img");
+        reorder = { tg, btn, container: btn.parentElement, block: btn.closest(".amg-image-gallery"), index: list.indexOf(btn),
+            src: img ? img.getAttribute("src") || img.src : "", grid: btn.classList.contains("thumbnail-lg"), slot: null };
+        try { e.dataTransfer.effectAllowed = "copyMove"; } catch (err) { /* read-only in some browsers */ }
+        btn.classList.add("dragger-dragging");
+    }
+    function hideInsert() { if (insertBar) insertBar.classList.remove("on"); if (reorder) reorder.slot = null; }
+    function reorderEnd() {
+        if (reorder && reorder.btn) reorder.btn.classList.remove("dragger-dragging");
+        reorder = null;
+        hideInsert();
+    }
+    // Insertion slot 0..n (before thumbnail i / after the last one) under the pointer, from the thumbnails' boxes:
+    // the closest one (rows weigh more than columns, for the grid), left or right half.
+    function slotAt(list, x, y) {
+        const c = reorder && reorder.container.getBoundingClientRect(), m = 28;   // only over the thumbnails (not the big preview)
+        if (c && (y < c.top - m || y > c.bottom + m || x < c.left - m || x > c.right + m)) return null;
+        let best = -1, bestD = Infinity;
+        list.forEach((b, i) => {
+            const r = b.getBoundingClientRect();
+            const dx = x < r.left ? r.left - x : x > r.right ? x - r.right : 0;
+            const dy = y < r.top ? r.top - y : y > r.bottom ? y - r.bottom : 0;
+            const d = dy * 4 + dx;
+            if (d < bestD) { bestD = d; best = i; }
+        });
+        if (best < 0) return null;
+        const r = list[best].getBoundingClientRect();
+        return x < r.left + r.width / 2 ? best : best + 1;
+    }
+    function showInsert(list, slot) {
+        if (!insertBar || !insertBar.isConnected) {
+            insertBar = document.createElement("div");
+            insertBar.className = "dragger-insert";
+            insertBar.appendChild(document.createElement("span"));
+            document.body.appendChild(insertBar);
+        }
+        const prev = slot > 0 ? list[slot - 1].getBoundingClientRect() : null;
+        const next = slot < list.length ? list[slot].getBoundingClientRect() : null;
+        let x, ref;
+        if (prev && next && Math.abs(prev.top - next.top) < 4) { x = (prev.right + next.left) / 2; ref = next; }
+        else if (next) { x = next.left - 4; ref = next; }
+        else { x = prev.right + 4; ref = prev; }
+        const from = reorder.index, to = slot > from ? slot - 1 : slot;
+        Object.assign(insertBar.style, { left: x + "px", top: ref.top - 4 + "px", height: ref.height + 8 + "px" });
+        const text = t("move_here", { pos: to + 1 });
+        if (insertBar.firstChild.textContent !== text) insertBar.firstChild.textContent = text;
+        insertBar.classList.add("on");
+    }
+    function autoScroll(container, x, y) {
+        const strip = !reorder.grid;
+        const el = strip ? container : (container.closest(".grid-wrap") || container.parentElement);
+        if (!el) return;
+        const r = el.getBoundingClientRect(), edge = 36, step = 14;
+        if (strip && el.scrollWidth > el.clientWidth) {
+            if (x < r.left + edge) el.scrollLeft -= step; else if (x > r.right - edge) el.scrollLeft += step;
+        } else if (!strip && el.scrollHeight > el.clientHeight) {
+            if (y < r.top + edge) el.scrollTop -= step; else if (y > r.bottom - edge) el.scrollTop += step;
+        }
+    }
+    // dragover inside the dragged thumbnail's own gallery; true = handled (the file-drop zones then stay inactive)
+    function reorderOver(e) {
+        if (!reorder || !reorderOn()) return false;
+        const tg = zoneOf(e.target);
+        if (!tg || tg.key !== reorder.tg.key || !reorder.container.isConnected) { hideInsert(); return false; }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const list = thumbList(reorder.container);
+        reorder.index = Math.max(0, list.indexOf(reorder.btn));
+        autoScroll(reorder.container, e.clientX, e.clientY);
+        const slot = slotAt(list, e.clientX, e.clientY);
+        const noop = slot === null || slot === reorder.index || slot === reorder.index + 1;
+        try { e.dataTransfer.dropEffect = noop ? "none" : "move"; } catch (err) { /* ignore */ }
+        if (noop) { hideInsert(); return true; }
+        reorder.slot = slot;
+        showInsert(list, slot);
+        return true;
+    }
+    async function moveThumb(tg, payload, blk) {
+        const r = await bridge(tg, { action: "move", ...payload });
+        if (!r.ok) { toast(t("move_failed", { e: r.error }), "error"); return r; }
+        if (r.moved) {
+            if (payload.grid && blk) keepGrid(blk);
+            toast(t("moved", { g: gname(tg), pos: r.to + 1, total: r.total }), "ok");
+        }
+        return r;
+    }
+    function reorderDrop(e) {
+        if (!reorder || !reorderOn()) return false;
+        const tg = zoneOf(e.target);
+        if (!tg || tg.key !== reorder.tg.key) return false;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        clearOverlays();
+        const list = thumbList(reorder.container);
+        const from = Math.max(0, list.indexOf(reorder.btn));
+        const slot = slotAt(list, e.clientX, e.clientY);
+        const r = reorder;
+        reorderEnd();
+        if (slot === null) return true;
+        const to = slot > from ? slot - 1 : slot;
+        if (to !== from) moveThumb(r.tg, { index: from, to, src: r.src, grid: r.grid }, r.block);
+        return true;
+    }
+    window.addEventListener("dragstart", e => { dragSource = zoneOf(e.target); reorderStart(e); }, true);
+    window.addEventListener("dragend", () => { dragSource = null; clearOverlays(); reorderEnd(); }, true);
+    const onOver = e => {
+        if (reorderOver(e)) {   // keep showing the other galleries (a drop there copies the image)
+            if (cfg.drag_enabled) { dragTs = Date.now(); if (!dragWatch) dragWatch = setInterval(() => { if (Date.now() - dragTs > 250) clearOverlays(); }, 100); renderOverlays(null); }
+            return;
+        }
+        onDragOver(e);
+    };
+    window.addEventListener("dragenter", onOver, true);
+    window.addEventListener("dragover", onOver, true);
+    window.addEventListener("drop", e => { if (!reorderDrop(e)) onDrop(e); }, true);
 
     // ------------------------------------------------------------------ paste
     let lastClickedKey = null;
@@ -607,7 +748,7 @@
     })(0);
 
     window.dragger = { version: VERSION, get settings() { return cfg; }, applySettings, bridgeResponse, loadTargets,
-        visibleTargets, zoneOf, extract, addTo, removeThumb, pasteTarget, toast, decorate, _bridge: bridge, lang, t, I18N, localizeTab,
+        visibleTargets, zoneOf, extract, addTo, removeThumb, moveThumb, pasteTarget, toast, decorate, _bridge: bridge, lang, t, I18N, localizeTab,
         get tabRequest() { return tabRequest; },
         inspect: key => { const tg = loadTargets().find(x => x.key === key); return tg ? bridge(tg, { action: "inspect" }) : Promise.resolve({ ok: false, error: t("unknown_gallery") }); } };
     log(`v${VERSION} loaded`);
