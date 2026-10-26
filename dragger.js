@@ -743,7 +743,7 @@ html.dragger-banding, html.dragger-banding * { user-select: none !important; cur
     }
     function observe() {
         const root = document.querySelector("gradio-app") || document.body;
-        new MutationObserver(scheduleDecorate).observe(root, { childList: true, subtree: true });
+        new MutationObserver(scheduleDecorate).observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
         scheduleDecorate();
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", observe); else observe();
@@ -907,7 +907,10 @@ html.dragger-banding, html.dragger-banding * { user-select: none !important; cur
         if (e.target.closest && e.target.closest(".dragger-msel-bar, .dragger-toast")) return;
         const tg = zoneOf(e.target);
         if (!tg) { if (msel) mselClear(); return; }        // a click outside the input galleries
-        if (e.target.closest(NOT_EMPTY)) return;           // thumbnails (click / reorder), buttons, the big preview
+        // thumbnails (click / reorder), buttons, the big preview image. Gradio wraps its whole preview (big image + strip)
+        // in a <button class="preview">: inside it, only the thumbnail strip's free space starts a box.
+        const hit = e.target.closest(NOT_EMPTY);
+        if (hit && !(hit.matches("button.preview") && e.target.closest(".thumbnails, .grid-wrap, .grid-container"))) return;
         const el = block(tg);
         if (!el || !el.contains(e.target)) return;
         const list = galleryList(tg);
@@ -1036,7 +1039,7 @@ html.dragger-banding, html.dragger-banding * { user-select: none !important; cur
 
     window.dragger = { version: VERSION, get settings() { return cfg; }, applySettings, bridgeResponse, loadTargets,
         visibleTargets, zoneOf, extract, addTo, removeThumb, moveThumb, pasteTarget,
-        get selection() { return msel ? { key: msel.tg.key, indices: mselIndices(), anchor: msel.anchor } : null; },
+        get selection() { reconcileSel(); return msel ? { key: msel.tg.key, indices: mselIndices(), anchor: msel.anchor } : null; },
         select: (key, indices) => { const tg = loadTargets().find(x => x.key === key); if (tg) mselSet(tg, indices); return !!tg; },
         clearSelection: mselClear, removeSelected, moveGroup, toast, decorate, _bridge: bridge, lang, t, I18N, localizeTab,
         get tabRequest() { return tabRequest; },
