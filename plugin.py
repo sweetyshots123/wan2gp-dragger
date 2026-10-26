@@ -83,7 +83,7 @@ TEXT = {
                         "the moved image stays selected. A click still selects; dragging it to another gallery still adds a copy there.",
         "multiselect": "Select several thumbnails",
         "multiselect_info": "Ctrl+click adds or removes a thumbnail, Shift+click selects a range, and dragging on an empty area of the gallery "
-                            "draws a selection box. Then \u201cRemove selected\u201d, \u201cKeep only selected\u201d or the Delete key (with Undo). "
+                            "draws a selection box. Then \u201cRemove selected\u201d, \u201cKeep only these\u201d or the Delete key (with Undo). "
                             "Esc or a click on an empty area clears the selection. Dragging a selected thumbnail moves the whole selection.",
         "toasts": "Confirmation messages", "toasts_info": "Errors are always shown.", "toast_s": "Duration (seconds)",
         "save": "Save settings",

@@ -2,6 +2,18 @@
 
 All notable changes to Dragger. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-10-26
+### Added
+- **Select several thumbnails** (*Seleccionar varias miniaturas*) in the start, end and reference image galleries: **Ctrl+click** (Cmd+click) toggles a thumbnail, **Shift+click** selects a range from the last Ctrl+clicked one, **dragging on an empty area of the strip** draws a selection box (Ctrl adds to the selection). Only the input galleries Dragger handles; WanGP's output gallery and the Reference Library browser are not affected.
+- Sky-blue ring + check badge on selected thumbnails (dark-theme friendly) and a bar with the count, **Remove selected** / *Quitar seleccionadas* and **Keep only these** / *Quedarme solo con estas*. **Supr / Delete** removes the selection (not in text fields); **Esc** or a click on an empty area clears it.
+- Removal runs **WanGP's own `_on_remove`** on the real gallery value and `gr.State`, from the highest index down, so the generation gets exactly the remaining images. *Removed 3 images from … (2 left)* with **Undo**, which restores the previous list and order (or reinserts the removed images at their old places if the gallery changed meanwhile).
+- **Group drag**: dragging a selected thumbnail moves the whole selection to the insertion bar (*Move 2 to position 4*), keeping its relative order, via WanGP's Left / Right (`_on_move`). The moved images stay selected.
+- The selection follows its images when the gallery changes (X, drop, paste, reorder). Stale requests are remapped by file on the server.
+- New setting `multiselect` (default on). Old `settings.json` files without it get `true`.
+
+### Unchanged
+- A plain click still selects one thumbnail the WanGP way; the X, single-thumbnail drag-to-reorder, file drops, paste and drag onto another gallery (which copies only the grabbed thumbnail) work as before.
+
 ## [1.2.0] - 2026-10-26
 ### Added
 - **Drag a thumbnail to reorder its gallery** (*Arrastrar las miniaturas para cambiar el orden*), instead of selecting it and clicking Left / Right. Works in the thumbnail strip under the preview and in the grid view, in every gallery with Left / Right (start, end and reference images, generator form and queue *Edit* tab).

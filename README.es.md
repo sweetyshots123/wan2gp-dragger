@@ -44,6 +44,14 @@ Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobreviv
 - Un clic normal sigue seleccionando la miniatura (el arrastre solo empieza cuando mueves el ratón). Soltarla en su mismo sitio, o sobre la vista previa grande, no hace nada. Soltada en **otra** galería se sigue **copiando** allí, y los archivos arrastrados desde fuera se siguen añadiendo como antes. Las galerías con una sola imagen no tienen nada que ordenar.
 - Funciona en todas las galerías que tienen Left / Right: imágenes de inicio, finales y de referencia, en el formulario y en la pestaña Edit de la cola. Se puede desactivar (*Arrastrar las miniaturas para cambiar el orden*).
 
+**Seleccionar varias miniaturas**
+- En las galerías de imagen de inicio, de fin y de referencia (las imágenes que has añadido al formulario, no la galería de resultados de WanGP ni el navegador de Reference Library): **Ctrl+clic** (Cmd+clic en Mac) añade o quita una miniatura, **Mayús+clic** selecciona un rango desde la última que marcaste con Ctrl+clic y **arrastrar sobre una zona vacía de la tira de miniaturas** dibuja un recuadro que selecciona todas las miniaturas que toca (con Ctrl pulsado se suman a la selección).
+- Las miniaturas seleccionadas llevan un anillo azul cielo y una marca de verificación, bien visibles en el tema oscuro. Una pequeña barra encima de la tira muestra *3 seleccionadas* con **Quitar seleccionadas** y **Quedarme solo con estas** (quita todas las demás).
+- La tecla **Supr** también quita la selección (no mientras escribes en un cuadro de texto). **Esc**, o un clic en una zona vacía, la deshace. Un clic normal sigue seleccionando una sola miniatura como siempre en WanGP y quita la selección múltiple.
+- Las imágenes se quitan con el **propio manejador Remove de WanGP** (`_on_remove`) sobre el valor real de la galería y su estado, una tras otra, así que la generación recibe exactamente las imágenes que quedan. *Quitadas 3 imágenes de Referencias (quedan 2)* con **Deshacer**, que devuelve las mismas imágenes en el mismo orden.
+- **Arrastrar una miniatura seleccionada mueve toda la selección** a la barra de inserción (*Mover 2 a la posición 4*), manteniendo su orden relativo, con Left / Right de WanGP. Arrastrar una miniatura no seleccionada mueve solo esa, y la selección sigue a sus imágenes. La X, soltar archivos y pegar funcionan igual que antes.
+- Una galería cada vez: seleccionar en otra galería sustituye la selección. Se puede desactivar (*Seleccionar varias miniaturas*).
+
 **Formatos**
 - PNG, JPEG, WebP, BMP, GIF y TIFF se añaden tal cual: el mismo archivo que añadiría el botón **Add**.
 - **AVIF**, **ICO** y otros formatos que lee Pillow se convierten a **PNG**. **HEIC/HEIF** se convierte si `pillow-heif` está instalado en el Python de WanGP; si no, sale un mensaje de error claro.
@@ -76,6 +84,7 @@ Encuentra los componentes con la API de plugins (`request_component`) y funciona
 | Tamaño de la X: *Pequeña* / *Mediana* / *Grande* (tira 15 / 18 / 22 px, cuadrícula 20 / 24 / 28 px) | mediana |
 | Ofrecer «Deshacer» durante 5 s | activado |
 | Arrastrar las miniaturas para cambiar el orden (Left / Right de WanGP) | activado |
+| Seleccionar varias miniaturas | Ctrl / Mayús+clic y recuadro de selección, *Quitar seleccionadas* / *Quedarme solo con estas* / Supr (Remove de WanGP) | activado |
 | Mensajes de confirmación + Duración (los errores se muestran siempre) | activado, 3,5 s |
 
 Se guardan en `settings.json` en la carpeta del plugin y se aplican al momento en esa pestaña del navegador (en otras ya abiertas, al recargar). No hace falta reiniciar. Los valores que se guardan en `settings.json` (`end` / `start` / `after_selected`, `hover` / `always`, `small` / `medium` / `large`, `auto` / `en` / `es`) no dependen del idioma, así que un `settings.json` de una versión anterior sigue valiendo (se le añade `language: auto`).
@@ -129,6 +138,8 @@ Probado con Wan2GP v17.17 (Gradio 5.29) en Chrome, contra la interfaz real de Wa
 - Los GIF/WebP animados se añaden tal cual; WanGP usa su primer fotograma.
 - Las imágenes SVG (vectoriales) no son compatibles.
 - Las imágenes que convierte Dragger se guardan en la carpeta temporal de subidas de Gradio, como cualquier subida.
+- Arrastrar una selección múltiple a **otra** galería copia solo la miniatura que has cogido, no toda la selección.
+- El primer Ctrl+clic empieza una selección nueva; la miniatura que WanGP ya tenía seleccionada no se incluye sola (márcala también con Ctrl+clic).
 
 ## Problemas
 
