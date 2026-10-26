@@ -39,7 +39,7 @@ import gradio as gr
 
 from shared.utils.plugins import WAN2GPPlugin
 
-PLUGIN_VERSION = "1.2.0"
+PLUGIN_VERSION = "1.3.0"
 _PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_PATH = os.path.join(_PLUGIN_DIR, "settings.json")
 
@@ -81,6 +81,10 @@ TEXT = {
         "reorder": "Drag thumbnails to reorder them",
         "reorder_info": "Drag a thumbnail and drop it where you want it: a bar shows where it will go. Same as using \u201cLeft\u201d / \u201cRight\u201d, "
                         "the moved image stays selected. A click still selects; dragging it to another gallery still adds a copy there.",
+        "multiselect": "Select several thumbnails",
+        "multiselect_info": "Ctrl+click adds or removes a thumbnail, Shift+click selects a range, and dragging on an empty area of the gallery "
+                            "draws a selection box. Then \u201cRemove selected\u201d, \u201cKeep only selected\u201d or the Delete key (with Undo). "
+                            "Esc or a click on an empty area clears the selection. Dragging a selected thumbnail moves the whole selection.",
         "toasts": "Confirmation messages", "toasts_info": "Errors are always shown.", "toast_s": "Duration (seconds)",
         "save": "Save settings",
         "saved": "\u2705 Settings saved and applied ({time}).",
@@ -125,6 +129,10 @@ TEXT = {
         "reorder": "Arrastrar las miniaturas para cambiar el orden",
         "reorder_info": "Arrastra una miniatura y suéltala donde la quieras: una barra marca dónde quedará. Igual que «Left» / «Right», "
                         "la imagen movida queda seleccionada. Un clic sigue seleccionando; arrastrarla a otra galería sigue añadiendo una copia allí.",
+        "multiselect": "Seleccionar varias miniaturas",
+        "multiselect_info": "Ctrl+clic añade o quita una miniatura, Mayús+clic selecciona un rango y arrastrar sobre una zona vacía de la galería "
+                            "dibuja un recuadro de selección. Después, «Quitar seleccionadas», «Quedarme solo con estas» o la tecla Supr (con Deshacer). "
+                            "Esc o un clic en una zona vacía quitan la selección. Arrastrar una miniatura seleccionada mueve toda la selección.",
         "toasts": "Mensajes de confirmación", "toasts_info": "Los errores se muestran siempre.", "toast_s": "Duración (segundos)",
         "save": "Guardar ajustes",
         "saved": "\u2705 Ajustes guardados y aplicados ({time}).",
@@ -189,6 +197,7 @@ DEFAULT_SETTINGS = {
     "x_size": "medium",          # "small" | "medium" | "large" (round X straddling the thumbnail's top-right corner)
     "undo": True,                # "Image removed · Undo" for 5 s after an X removal
     "reorder": True,             # drag a thumbnail within its gallery to move it (WanGP's own Left/Right handler, step by step)
+    "multiselect": True,         # 1.3.0: Ctrl/Shift+click and area select; "Remove selected" / "Keep only selected" (WanGP's Remove handler)
 }
 _CHOICES = {"position": ("end", "start", "after_selected"), "remove_x_mode": ("hover", "always"), "x_size": ("small", "medium", "large"),
             "language": ("auto",) + LANGS}
@@ -364,7 +373,7 @@ class DraggerPlugin(WAN2GPPlugin):
     # (hidden "localize" button + the browser language) to relabel it in the resolved language, and saving a new
     # language relabels it in the same event: the tab always matches the language of Dragger's messages.
     TAB_KEYS = ("intro", "language", "sec_input", "drag_enabled", "paste_enabled", "remote", "t_image_start", "t_image_end", "t_image_refs",
-                "position", "downscale", "max_side", "sec_remove", "remove_x", "remove_x_mode", "x_size", "undo", "sec_order", "reorder", "sec_messages",
+                "position", "downscale", "max_side", "sec_remove", "remove_x", "remove_x_mode", "x_size", "undo", "sec_order", "reorder", "multiselect", "sec_messages",
                 "toasts", "toast_s", "save")
 
     @staticmethod
@@ -385,6 +394,7 @@ class DraggerPlugin(WAN2GPPlugin):
             "x_size": {"label": t("x_size"), "info": t("x_size_info"), "choices": x_size_choices(lang)},
             "undo": {"label": t("undo")},
             "sec_order": {"value": t("sec_order")}, "reorder": {"label": t("reorder"), "info": t("reorder_info")},
+            "multiselect": {"label": t("multiselect"), "info": t("multiselect_info")},
             "toasts": {"label": t("toasts"), "info": t("toasts_info")}, "toast_s": {"label": t("toast_s")},
             "save": {"value": t("save")},
         }
@@ -426,6 +436,7 @@ class DraggerPlugin(WAN2GPPlugin):
             ui["sec_order"] = gr.Markdown(tx["sec_order"]["value"])
             with gr.Row():
                 ui["reorder"] = gr.Checkbox(value=current("reorder"), elem_id="dragger_reorder", **tx["reorder"])
+                ui["multiselect"] = gr.Checkbox(value=current("multiselect"), elem_id="dragger_multiselect", **tx["multiselect"])
         with gr.Group():
             ui["sec_messages"] = gr.Markdown(tx["sec_messages"]["value"])
             with gr.Row():
@@ -458,7 +469,7 @@ class DraggerPlugin(WAN2GPPlugin):
             fn=None, inputs=[settings_json], outputs=None, js="(s) => { if (window.dragger) window.dragger.applySettings(s, true); }")
 
         inputs = [ui[k] for k in ("drag_enabled", "paste_enabled", "remote", "t_image_start", "t_image_end", "t_image_refs", "position", "downscale",
-                                  "max_side", "remove_x", "remove_x_mode", "undo", "toasts", "toast_s", "x_size", "language", "reorder")] + [browser_lang]
+                                  "max_side", "remove_x", "remove_x_mode", "undo", "toasts", "toast_s", "x_size", "language", "reorder", "multiselect")] + [browser_lang]
         ui["save"].click(fn=self._save_from_ui, inputs=inputs, outputs=[status, settings_json] + tab_outputs, show_progress="hidden",
                          js="(...a) => { a[a.length - 1] = navigator.language || ''; return a; }").then(
             fn=None, inputs=[settings_json], outputs=None, js="(s) => { if (window.dragger) window.dragger.applySettings(s, 'saved'); }")
@@ -482,9 +493,9 @@ class DraggerPlugin(WAN2GPPlugin):
         return (json.dumps(settings), *self.tab_updates(lang))
 
     def _save_from_ui(self, drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side,
-                      remove_x, remove_x_mode, undo, toasts, toast_s, x_size="medium", language="auto", reorder=True, browser_lang=""):
+                      remove_x, remove_x_mode, undo, toasts, toast_s, x_size="medium", language="auto", reorder=True, multiselect=True, browser_lang=""):
         settings = self.apply_ui_values(drag_enabled, paste_enabled, remote, t_start, t_end, t_refs, position, downscale, max_side,
-                                        remove_x, remove_x_mode, undo, toasts, toast_s, x_size, language, reorder)
+                                        remove_x, remove_x_mode, undo, toasts, toast_s, x_size, language, reorder, multiselect)
         lang = resolve_lang(settings["language"], browser_lang)
         try:
             save_settings(settings)
@@ -495,14 +506,14 @@ class DraggerPlugin(WAN2GPPlugin):
     @staticmethod
     def apply_ui_values(drag_enabled=True, paste_enabled=True, remote=True, t_start=True, t_end=True, t_refs=True, position="end",
                         downscale=False, max_side=2048, remove_x=True, remove_x_mode="hover", undo=True, toasts=True, toast_s=3.5,
-                        x_size="medium", language="auto", reorder=True):
+                        x_size="medium", language="auto", reorder=True, multiselect=True):
         settings = copy.deepcopy(DEFAULT_SETTINGS)
         settings.update({"drag_enabled": bool(drag_enabled), "paste_enabled": bool(paste_enabled), "remote_download": bool(remote),
                          "targets": {"image_start": bool(t_start), "image_end": bool(t_end), "image_refs": bool(t_refs)},
                          "position": _coerce("position", "end", position), "downscale": bool(downscale),
                          "max_side": _coerce("max_side", 2048, max_side), "remove_x": bool(remove_x),
                          "remove_x_mode": _coerce("remove_x_mode", "hover", remove_x_mode), "x_size": _coerce("x_size", "medium", x_size),
-                         "language": _coerce("language", "auto", language), "undo": bool(undo), "reorder": bool(reorder), "toasts": bool(toasts),
+                         "language": _coerce("language", "auto", language), "undo": bool(undo), "reorder": bool(reorder), "multiselect": bool(multiselect), "toasts": bool(toasts),
                          "toast_ms": _coerce("toast_ms", 3500, (toast_s or 0) * 1000 if isinstance(toast_s, (int, float)) else None)})
         return settings
 
@@ -536,6 +547,12 @@ class DraggerPlugin(WAN2GPPlugin):
                 out, out_gallery, out_state = self.undo_remove(key, req, gallery, state)
             elif action == "move":
                 out, out_gallery, out_state = self.move_image(key, req, gallery, state)
+            elif action == "remove_many":
+                out, out_gallery, out_state = self.remove_many(key, req, gallery, state)
+            elif action == "undo_many":
+                out, out_gallery, out_state = self.undo_many(key, req, gallery, state)
+            elif action == "move_group":
+                out, out_gallery, out_state = self.move_group(key, req, gallery, state)
             elif action == "inspect":   # read-only: what the form holds (diagnostics, tests)
                 out = self.inspect(gallery, state)
             else:
@@ -771,7 +788,7 @@ class DraggerPlugin(WAN2GPPlugin):
         from shared.gradio.gallery import get_gradio_file_path, get_list, get_state, record_last_action
         with self._lock:
             undo = self._undo.get(req.get("token"))
-            if not undo or undo["key"] != key:
+            if not undo or undo["key"] != key or undo.get("kind") == "many":
                 raise DraggerError("undo_expired")
             self._undo.pop(req.get("token"), None)
         path = get_gradio_file_path(undo["item"])
@@ -839,3 +856,136 @@ class DraggerPlugin(WAN2GPPlugin):
         gallery_update = amg._gallery_update(st, value=items, selected_index=sel)
         return {"ok": True, "moved": True, "index": index, "to": to, "total": len(items), "name": name,
                 "steps": abs(to - index)}, gallery_update, st
+
+    # ------------------------------------------------------------ multi-select (1.3.0)
+    @staticmethod
+    def _resolve_many(req, cur):
+        """req["indices"] + req["srcs"] (thumbnail file URLs, same order) -> sorted unique current indices.
+        Each index is checked against its file; if the gallery moved, the nearest unused occurrence of that file is taken."""
+        from shared.gradio.gallery import get_gradio_file_path
+        indices, srcs = req.get("indices"), req.get("srcs") or []
+        if not isinstance(indices, list) or not indices:
+            raise DraggerError("bad_index")
+        paths = [get_gradio_file_path(it) for it in cur]
+        out = set()
+        for k, raw in enumerate(indices):
+            try:
+                index = int(raw)
+            except Exception:
+                raise DraggerError("bad_index")
+            src = _path_from_file_url(srcs[k]) if k < len(srcs) else None
+            if src and not (0 <= index < len(cur) and paths[index] == src and index not in out):
+                matches = [i for i, p in enumerate(paths) if p == src and i not in out]
+                if not matches:
+                    raise DraggerError("gallery_changed")
+                index = min(matches, key=lambda i: abs(i - index))
+            if not (0 <= index < len(cur)):
+                raise DraggerError("gone")
+            out.add(index)
+        return sorted(out)
+
+    def remove_many(self, key, req, gallery, state):
+        """"Remove selected" (keep=False) or "Keep only selected" (keep=True). Runs WanGP's own Remove handler
+        (AdvancedMediaGallery._on_remove, what the Remove button runs) once per image, from the last one to the first,
+        on the real gallery value + gr.State. The previous list is kept for Undo."""
+        from shared.gradio.gallery import get_gradio_file_path, get_list, get_state
+        st = get_state(state)
+        cur = get_list(gallery)
+        chosen = self._resolve_many(req, cur)
+        keep = bool(req.get("keep"))
+        drop = [i for i in range(len(cur)) if i not in chosen] if keep else chosen
+        before, prev_sel = list(cur), st.get("selected")
+        if not drop:
+            return {"ok": True, "removed": 0, "total": len(cur), "keep": keep}, gr.skip(), gr.skip()
+        amg, items = self.amg(), cur
+        gallery_update = None
+        for i in sorted(drop, reverse=True):
+            st["selected"] = i
+            gallery_update, st = amg._on_remove(st, items)
+            items = st["items"]
+        if items:
+            # the image that was selected stays selected when it is still there, else the first one left
+            kept = [i for i in range(len(before)) if i not in set(drop)]
+            sel = kept.index(prev_sel) if isinstance(prev_sel, int) and prev_sel in kept else 0
+            if req.get("grid"):
+                sel = None
+            st["selected"] = sel
+            gallery_update = amg._gallery_update(st, value=items, selected_index=sel)
+        token = uuid.uuid4().hex
+        with self._lock:
+            self._purge_undo()
+            self._undo[token] = {"key": key, "kind": "many", "before": before, "selected": prev_sel, "dropped": sorted(drop),
+                                 "after": [get_gradio_file_path(it) for it in items], "time": time.time()}
+        return {"ok": True, "token": token, "removed": len(drop), "total": len(items), "keep": keep}, gallery_update, st
+
+    def undo_many(self, key, req, gallery, state):
+        """Undo of remove_many: the exact previous list and order when the gallery is as the removal left it; otherwise the
+        removed images go back to their former positions and later changes are kept."""
+        from shared.gradio.gallery import get_gradio_file_path, get_list, get_state, record_last_action
+        with self._lock:
+            undo = self._undo.get(req.get("token"))
+            if not undo or undo["key"] != key or undo.get("kind") != "many":
+                raise DraggerError("undo_expired")
+            self._undo.pop(req.get("token"), None)
+        before, dropped = undo["before"], undo["dropped"]
+        for i in dropped:
+            p = get_gradio_file_path(before[i])
+            if p and not os.path.isfile(p):
+                raise DraggerError("file_gone")
+        st = get_state(state)
+        cur = get_list(gallery)
+        if [get_gradio_file_path(it) for it in cur] == undo["after"]:
+            items = list(before)
+            sel = undo["selected"] if isinstance(undo["selected"], int) and 0 <= undo["selected"] < len(items) else (0 if items else None)
+        else:
+            items = list(cur)
+            for i in dropped:                          # ascending: each goes back to its old index
+                items.insert(min(i, len(items)), before[i])
+            sel = min(dropped[0], len(items) - 1) if items else None
+        if st.get("single", False) and items:
+            items, sel = items[:1], 0
+        if req.get("grid"):
+            sel = None
+        st["items"], st["selected"] = items, sel
+        record_last_action(st, "add")
+        return {"ok": True, "total": len(items), "restored": len(dropped)}, self.amg()._gallery_update(st, value=items, selected_index=sel), st
+
+    def move_group(self, key, req, gallery, state):
+        """Drag of several selected thumbnails: they keep their relative order and land at insertion slot req["slot"]
+        (0..n, counted in the current list). Done with WanGP's own Left/Right handler (_on_move(±1)), one adjacent swap
+        at a time, so gallery value and state end up exactly as with the buttons. Returns the new indices."""
+        from shared.gradio.gallery import get_list, get_state
+        st = get_state(state)
+        cur = get_list(gallery)
+        if st.get("single", False):
+            raise DraggerError("bad_move")
+        group = self._resolve_many(req, cur)
+        try:
+            slot = int(req.get("slot"))
+        except Exception:
+            raise DraggerError("bad_move")
+        if not (0 <= slot <= len(cur)):
+            raise DraggerError("bad_move")
+        n = len(cur)
+        rest = [i for i in range(n) if i not in group]
+        at = sum(1 for i in rest if i < slot)            # insertion point among the others
+        target = rest[:at] + group + rest[at:]           # target[k] = old index that must end at position k
+        if target == list(range(n)):
+            return {"ok": True, "moved": False, "indices": group, "total": n}, gr.skip(), gr.skip()
+        amg, items, order = self.amg(), cur, list(range(n))
+        steps = 0
+        for k in range(n):                                # selection sort with adjacent swaps (= repeated Left)
+            j = order.index(target[k])
+            while j > k:
+                st["selected"] = j
+                _u, nxt = amg._on_move(-1, st, items)
+                if not isinstance(nxt, dict):
+                    raise DraggerError("gallery_changed")
+                st, items = nxt, nxt["items"]
+                order[j - 1], order[j] = order[j], order[j - 1]
+                j -= 1
+                steps += 1
+        new_idx = [target.index(i) for i in group]
+        sel = None if req.get("grid") else new_idx[0]
+        st["selected"] = sel
+        return {"ok": True, "moved": True, "indices": new_idx, "total": n, "steps": steps}, amg._gallery_update(st, value=items, selected_index=sel), st
