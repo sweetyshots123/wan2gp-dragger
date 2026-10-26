@@ -44,6 +44,14 @@ It is a regular WanGP plugin. It doesn't modify any core WanGP file, so it survi
 - A plain click still selects the thumbnail (the drag only starts once the mouse moves). Dropping it back on its own place, or on the big preview, does nothing. Dropped on **another** gallery it is still **copied** there, and files dragged from outside are still added as before. Galleries holding a single image have nothing to reorder.
 - Works in every gallery that has Left / Right: start images, end images and reference images, in the generator form and in the queue's Edit tab. Can be turned off (*Drag thumbnails to reorder them*).
 
+**Select several thumbnails**
+- In the start, end and reference image galleries (the images you added to the form, not WanGP's output gallery or the Reference Library browser): **Ctrl+click** (Cmd+click on a Mac) adds or removes a thumbnail, **Shift+click** selects a range from the last one you Ctrl+clicked, and **dragging on an empty area of the thumbnail strip** draws a selection box that selects every thumbnail it touches (hold Ctrl to add to the selection).
+- Selected thumbnails get a bright sky-blue ring and a check mark, readable on the dark theme. A small bar above the strip shows *3 selected* with **Remove selected** and **Keep only these** (it removes all the others).
+- **Supr / Delete** removes the selection too (not while you are typing in a text box). **Esc**, or a click on an empty area, clears it. A plain click still selects a single thumbnail the WanGP way and clears the multi-selection.
+- Removing is done by **WanGP's own Remove handler** (`_on_remove`) on the real gallery value and state, one image after another, so the generation gets exactly the images left. *Removed 3 images from Reference images (2 left)* with **Undo**, which brings back the same images in the same order.
+- **Dragging a selected thumbnail moves the whole selection** to the insertion bar (*Move 2 to position 4*), keeping their relative order, with WanGP's Left / Right. Dragging a thumbnail that isn't selected moves only that one, and the selection follows its images. The X, file drops and pastes work as before.
+- One gallery at a time: selecting in another gallery replaces the selection. Can be turned off (*Select several thumbnails*).
+
 **Formats**
 - PNG, JPEG, WebP, BMP, GIF and TIFF are added as they are. That's the same file the **Add** button would add.
 - **AVIF**, **ICO** and other formats Pillow can read are converted to **PNG**. **HEIC/HEIF** is converted if `pillow-heif` is installed in WanGP's Python; otherwise you get a clear error message.
@@ -76,6 +84,7 @@ The plugin finds the components with the plugin API (`request_component("image_s
 | X size | *Small* / *Medium* / *Large* (strip 15 / 18 / 22 px, grid 20 / 24 / 28 px) | medium |
 | Offer “Undo” for 5 s | undo after an X removal | on |
 | Drag thumbnails to reorder them | drag a thumbnail inside its gallery to move it (WanGP's Left / Right) | on |
+| Select several thumbnails | Ctrl / Shift+click and selection box, *Remove selected* / *Keep only these* / Delete (WanGP's Remove) | on |
 | Confirmation messages + Duration (seconds) | confirmation messages and their duration (errors are always shown) | on, 3.5 s |
 
 Settings are saved in `settings.json` in the plugin folder and apply immediately in that browser tab. Other open tabs pick them up when reloaded. No restart is needed. The keys stored in `settings.json` (`end` / `start` / `after_selected`, `hover` / `always`, `small` / `medium` / `large`, `auto` / `en` / `es`) don't depend on the language, so a `settings.json` from an older version keeps working (it gets `language: auto`).
@@ -129,6 +138,8 @@ Tested with Wan2GP v17.17 (Gradio 5.29) in Chrome, against the real WanGP interf
 - Animated GIF/WebP files are added as they are; WanGP uses their first frame.
 - SVG (vector) images aren't supported.
 - Images that Dragger converts are stored in Gradio's temporary upload folder, like every upload.
+- Dragging a multi-selection onto **another** gallery copies only the thumbnail you grabbed, not the whole selection.
+- The first Ctrl+click starts a new selection; the thumbnail WanGP already had selected is not included automatically (Ctrl+click it too).
 
 ## Troubleshooting
 
