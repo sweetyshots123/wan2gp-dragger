@@ -54,7 +54,7 @@ Es un plugin normal de WanGP: no modifica ningún archivo del núcleo y sobreviv
 
 **Formatos**
 - PNG, JPEG, WebP, BMP, GIF y TIFF se añaden tal cual: el mismo archivo que añadiría el botón **Add**.
-- **AVIF**, **ICO** y otros formatos que lee Pillow se convierten a **PNG**. **HEIC/HEIF** se convierte si `pillow-heif` está instalado en el Python de WanGP; si no, sale un mensaje de error claro.
+- **AVIF**, **ICO** y otros formatos que lee Pillow se convierten a **PNG**. **HEIC/HEIF** se convierte a **JPEG** (calidad 95, con orientación EXIF) si `pillow-heif` está instalado en el Python de WanGP; si no, sale un mensaje de error claro. El archivo original no se modifica.
 - A un archivo con la extensión equivocada o sin extensión (por ejemplo, una imagen del portapapeles) se le pone la correcta.
 - **Reducción automática** opcional de las imágenes cuyo lado mayor pase de un límite (desactivada por defecto). Las imágenes pegadas se llaman `portapapeles-AAAAMMDD-HHMMSS.png` (`clipboard-…` cuando Dragger está en inglés).
 

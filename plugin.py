@@ -16,7 +16,7 @@ How it works
     "Remove" button runs), then returns the gallery update + state through the
     normal Gradio event. No DOM-only changes, no core file is modified.
   * Images in formats WanGP's galleries don't accept (AVIF, HEIC, ICO, ...) or
-    without a proper extension are converted to PNG; optional auto-downscale.
+    without a proper extension are converted (HEIC/HEIF to JPEG, others to PNG); optional auto-downscale.
   * Bilingual (English / Spanish): every user-facing text comes from the TEXT table
     below (settings tab, server messages) or from the I18N table in dragger.js
     (messages in the page). Setting "language": auto (browser language), en, es.
@@ -39,7 +39,7 @@ import gradio as gr
 
 from shared.utils.plugins import WAN2GPPlugin
 
-PLUGIN_VERSION = "1.3.0"
+PLUGIN_VERSION = "1.3.1"
 _PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_PATH = os.path.join(_PLUGIN_DIR, "settings.json")
 
@@ -682,7 +682,11 @@ class DraggerPlugin(WAN2GPPlugin):
             img = ImageOps.exif_transpose(img)
             if too_big:
                 img.thumbnail((opts["max_side"], opts["max_side"]), Image.LANCZOS)
-            if fmt in ("JPEG", "MPO") and too_big:
+            # HEIC/HEIF -> JPEG (high quality). Original upload stays untouched.
+            if fmt in ("HEIF", "HEIC") or ext in (".heic", ".heif"):
+                dst = os.path.join(out_dir, stem + ".jpg")
+                img.convert("RGB").save(dst, "JPEG", quality=95)
+            elif fmt in ("JPEG", "MPO") and too_big:
                 dst = os.path.join(out_dir, stem + ".jpg")
                 img.convert("RGB").save(dst, "JPEG", quality=95)
             else:

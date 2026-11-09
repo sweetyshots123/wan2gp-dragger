@@ -1,3 +1,7 @@
+## 1.3.1
+
+- **HEIC/HEIF → JPEG.** Dropped or pasted Apple HEIC/HEIF photos are converted automatically to JPEG (quality 95) after EXIF orientation is applied, when `pillow-heif` is installed in WanGP's Python. The original file is never modified. AVIF/ICO and other non-native formats still become PNG.
+
 # Changelog
 
 All notable changes to Dragger. Versions follow [Semantic Versioning](https://semver.org/).
